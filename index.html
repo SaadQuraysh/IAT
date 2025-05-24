@@ -1,103 +1,76 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Implicit Association Test – Brand Bias</title>
-  <script type="module">
-    import jsPsych from "https://unpkg.com/jspsych@7.3.0/dist/jspsych.js";
-    import htmlKeyboardResponse from "https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.2.0/dist/plugin-html-keyboard-response.js";
-    import categorizeHtml from "https://unpkg.com/@jspsych/plugin-categorize-html@1.2.0/dist/plugin-categorize-html.js";
-
-    const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
-    const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
-    const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
-    const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
-
-    const jsPsychInstance = initJsPsych({
-      on_finish: () => jsPsychInstance.data.displayData()
-    });
-
-    const timeline = [];
-
-    // Welcome screen
-    timeline.push({
-      type: htmlKeyboardResponse,
-      stimulus: 'Welcome to the Implicit Association Test.<br><br>Press any key to begin.'
-    });
-
-    // Practice: Categorize brands as Familiar or Unfamiliar
-    familiarBrands.concat(unfamiliarBrands).forEach(word => {
-      timeline.push({
-        type: categorizeHtml,
-        stimulus: `<p style='font-size:32px;'>${word}</p>`,
-        key_answer: familiarBrands.includes(word) ? 'f' : 'j',
-        choices: ['f', 'j'],
-        prompt: '<p>Press F for Familiar | J for Unfamiliar</p>',
-        show_stim_with_feedback: true,
-        feedback_duration: 300
-      });
-    });
-
-    // Practice: Categorize words as Positive or Negative
-    positiveWords.concat(negativeWords).forEach(word => {
-      timeline.push({
-        type: categorizeHtml,
-        stimulus: `<p style='font-size:32px;'>${word}</p>`,
-        key_answer: positiveWords.includes(word) ? 'f' : 'j',
-        choices: ['f', 'j'],
-        prompt: '<p>Press F for Positive | J for Negative</p>',
-        show_stim_with_feedback: true,
-        feedback_duration: 300
-      });
-    });
-
-    // Test Block: Congruent (Familiar/Positive vs. Unfamiliar/Negative)
-    jsPsych.randomization.shuffle(familiarBrands.concat(positiveWords, unfamiliarBrands, negativeWords)).forEach(word => {
-      timeline.push({
-        type: categorizeHtml,
-        stimulus: `<p style='font-size:32px;'>${word}</p>`,
-        key_answer: (familiarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
-        choices: ['f', 'j'],
-        prompt: '<p>Press F for Familiar/Positive | J for Unfamiliar/Negative</p>',
-        data: { block: 'congruent' },
-        show_stim_with_feedback: true,
-        feedback_duration: 300
-      });
-    });
-
-    // Reversal Practice: Switch Familiar/Unfamiliar categorization
-    familiarBrands.concat(unfamiliarBrands).forEach(word => {
-      timeline.push({
-        type: categorizeHtml,
-        stimulus: `<p style='font-size:32px;'>${word}</p>`,
-        key_answer: unfamiliarBrands.includes(word) ? 'f' : 'j',
-        choices: ['f', 'j'],
-        prompt: '<p>Press F for Unfamiliar | J for Familiar</p>',
-        show_stim_with_feedback: true,
-        feedback_duration: 300
-      });
-    });
-
-    // Test Block: Incongruent (Unfamiliar/Positive vs. Familiar/Negative)
-    jsPsych.randomization.shuffle(familiarBrands.concat(negativeWords, unfamiliarBrands, positiveWords)).forEach(word => {
-      timeline.push({
-        type: categorizeHtml,
-        stimulus: `<p style='font-size:32px;'>${word}</p>`,
-        key_answer: (unfamiliarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
-        choices: ['f', 'j'],
-        prompt: '<p>Press F for Unfamiliar/Positive | J for Familiar/Negative</p>',
-        data: { block: 'incongruent' },
-        show_stim_with_feedback: true,
-        feedback_duration: 300
-      });
-    });
-
-    jsPsychInstance.run(timeline);
-  </script>
+  <meta charset="UTF-8">
+  <title>IAT – Brand Preference</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-categorize-html.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; padding: 2em; background-color: #fafafa; }
-    .jspsych-content { font-size: 24px; text-align: center; }
+    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 3em; }
+    .jspsych-content { font-size: 24px; }
   </style>
 </head>
 <body></body>
+<script>
+  const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
+  const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
+  const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
+  const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
+
+  const timeline = [];
+
+  timeline.push({
+    type: 'html-keyboard-response',
+    stimulus: '<p>Welcome to the Implicit Association Test.<br>Press any key to begin.</p>'
+  });
+
+  function categorize(word, key_answer, prompt, block) {
+    return {
+      type: 'categorize-html',
+      stimulus: `<p style='font-size:32px;'>${word}</p>`,
+      choices: ['f', 'j'],
+      key_answer: key_answer,
+      prompt: `<p>${prompt}</p>`,
+      show_stim_with_feedback: true,
+      feedback_duration: 300,
+      data: { block: block }
+    };
+  }
+
+  // Practice: Familiar vs Unfamiliar
+  familiarBrands.concat(unfamiliarBrands).forEach(word => {
+    timeline.push(categorize(word, familiarBrands.includes(word) ? 'f' : 'j', 'Press F for Familiar | J for Unfamiliar', 'practice-brands'));
+  });
+
+  // Practice: Positive vs Negative
+  positiveWords.concat(negativeWords).forEach(word => {
+    timeline.push(categorize(word, positiveWords.includes(word) ? 'f' : 'j', 'Press F for Positive | J for Negative', 'practice-valence'));
+  });
+
+  // Congruent Test Block: Familiar/Positive vs Unfamiliar/Negative
+  jsPsych.randomization.shuffle(familiarBrands.concat(positiveWords, unfamiliarBrands, negativeWords)).forEach(word => {
+    const correctKey = familiarBrands.includes(word) || positiveWords.includes(word) ? 'f' : 'j';
+    timeline.push(categorize(word, correctKey, 'F = Familiar/Positive | J = Unfamiliar/Negative', 'congruent'));
+  });
+
+  // Reversal Practice
+  familiarBrands.concat(unfamiliarBrands).forEach(word => {
+    timeline.push(categorize(word, unfamiliarBrands.includes(word) ? 'f' : 'j', 'F = Unfamiliar | J = Familiar', 'reversal-practice'));
+  });
+
+  // Incongruent Test Block: Unfamiliar/Positive vs Familiar/Negative
+  jsPsych.randomization.shuffle(unfamiliarBrands.concat(positiveWords, familiarBrands, negativeWords)).forEach(word => {
+    const correctKey = unfamiliarBrands.includes(word) || positiveWords.includes(word) ? 'f' : 'j';
+    timeline.push(categorize(word, correctKey, 'F = Unfamiliar/Positive | J = Familiar/Negative', 'incongruent'));
+  });
+
+  jsPsych.init({
+    timeline: timeline,
+    on_finish: function() {
+      jsPsych.data.displayData();
+    }
+  });
+</script>
 </html>
+
