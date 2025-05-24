@@ -1,109 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Implicit Association Test – Brand Bias</title>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-keyboard-response@1.2.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@jspsych/plugin-categorize-html@1.2.0"></script>
-  <link href="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/css/jspsych.css" rel="stylesheet">
+  <script type="module">
+    import jsPsych from "https://unpkg.com/jspsych@7.3.0/dist/jspsych.js";
+    import htmlKeyboardResponse from "https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.2.0/dist/plugin-html-keyboard-response.js";
+    import categorizeHtml from "https://unpkg.com/@jspsych/plugin-categorize-html@1.2.0/dist/plugin-categorize-html.js";
+
+    const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
+    const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
+    const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
+    const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
+
+    const jsPsychInstance = initJsPsych({
+      on_finish: () => jsPsychInstance.data.displayData()
+    });
+
+    const timeline = [];
+
+    // Welcome screen
+    timeline.push({
+      type: htmlKeyboardResponse,
+      stimulus: 'Welcome to the Implicit Association Test.<br><br>Press any key to begin.'
+    });
+
+    // Practice: Categorize brands as Familiar or Unfamiliar
+    familiarBrands.concat(unfamiliarBrands).forEach(word => {
+      timeline.push({
+        type: categorizeHtml,
+        stimulus: `<p style='font-size:32px;'>${word}</p>`,
+        key_answer: familiarBrands.includes(word) ? 'f' : 'j',
+        choices: ['f', 'j'],
+        prompt: '<p>Press F for Familiar | J for Unfamiliar</p>',
+        show_stim_with_feedback: true,
+        feedback_duration: 300
+      });
+    });
+
+    // Practice: Categorize words as Positive or Negative
+    positiveWords.concat(negativeWords).forEach(word => {
+      timeline.push({
+        type: categorizeHtml,
+        stimulus: `<p style='font-size:32px;'>${word}</p>`,
+        key_answer: positiveWords.includes(word) ? 'f' : 'j',
+        choices: ['f', 'j'],
+        prompt: '<p>Press F for Positive | J for Negative</p>',
+        show_stim_with_feedback: true,
+        feedback_duration: 300
+      });
+    });
+
+    // Test Block: Congruent (Familiar/Positive vs. Unfamiliar/Negative)
+    jsPsych.randomization.shuffle(familiarBrands.concat(positiveWords, unfamiliarBrands, negativeWords)).forEach(word => {
+      timeline.push({
+        type: categorizeHtml,
+        stimulus: `<p style='font-size:32px;'>${word}</p>`,
+        key_answer: (familiarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
+        choices: ['f', 'j'],
+        prompt: '<p>Press F for Familiar/Positive | J for Unfamiliar/Negative</p>',
+        data: { block: 'congruent' },
+        show_stim_with_feedback: true,
+        feedback_duration: 300
+      });
+    });
+
+    // Reversal Practice: Switch Familiar/Unfamiliar categorization
+    familiarBrands.concat(unfamiliarBrands).forEach(word => {
+      timeline.push({
+        type: categorizeHtml,
+        stimulus: `<p style='font-size:32px;'>${word}</p>`,
+        key_answer: unfamiliarBrands.includes(word) ? 'f' : 'j',
+        choices: ['f', 'j'],
+        prompt: '<p>Press F for Unfamiliar | J for Familiar</p>',
+        show_stim_with_feedback: true,
+        feedback_duration: 300
+      });
+    });
+
+    // Test Block: Incongruent (Unfamiliar/Positive vs. Familiar/Negative)
+    jsPsych.randomization.shuffle(familiarBrands.concat(negativeWords, unfamiliarBrands, positiveWords)).forEach(word => {
+      timeline.push({
+        type: categorizeHtml,
+        stimulus: `<p style='font-size:32px;'>${word}</p>`,
+        key_answer: (unfamiliarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
+        choices: ['f', 'j'],
+        prompt: '<p>Press F for Unfamiliar/Positive | J for Familiar/Negative</p>',
+        data: { block: 'incongruent' },
+        show_stim_with_feedback: true,
+        feedback_duration: 300
+      });
+    });
+
+    jsPsychInstance.run(timeline);
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2em; background-color: #fafafa; }
+    .jspsych-content { font-size: 24px; text-align: center; }
+  </style>
 </head>
 <body></body>
-<script>
-  const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
-  const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
-  const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
-  const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
-
-  const timeline = [];
-
-  // Instructions
-  timeline.push({
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: '<p>Welcome to the Implicit Association Test.<br>Press any key to begin.</p>'
-  });
-
-  // Practice Block: Brand categorization
-  const brandPractice = familiarBrands.concat(unfamiliarBrands).map(word => {
-    return {
-      type: jsPsychCategorizeHtml,
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      key_answer: familiarBrands.includes(word) ? 'f' : 'j',
-      choices: ['f', 'j'],
-      prompt: '<p>Press F for Familiar | J for Unfamiliar</p>',
-      show_stim_with_feedback: true,
-      feedback_duration: 500
-    };
-  });
-  timeline.push(...brandPractice);
-
-  // Practice Block: Positive/Negative words
-  const valencePractice = positiveWords.concat(negativeWords).map(word => {
-    return {
-      type: jsPsychCategorizeHtml,
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      key_answer: positiveWords.includes(word) ? 'f' : 'j',
-      choices: ['f', 'j'],
-      prompt: '<p>Press F for Positive | J for Negative</p>',
-      show_stim_with_feedback: true,
-      feedback_duration: 500
-    };
-  });
-  timeline.push(...valencePractice);
-
-  // Test Block: Congruent (Familiar + Positive vs. Unfamiliar + Negative)
-  const congruentWords = familiarBrands.concat(positiveWords).concat(unfamiliarBrands).concat(negativeWords);
-  const congruentTrials = jsPsych.randomization.shuffle(congruentWords).map(word => {
-    return {
-      type: jsPsychCategorizeHtml,
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      key_answer:
-        (familiarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
-      choices: ['f', 'j'],
-      prompt: '<p>Press F for Familiar/Positive | J for Unfamiliar/Negative</p>',
-      data: { block: 'congruent' },
-      show_stim_with_feedback: true,
-      feedback_duration: 300
-    };
-  });
-  timeline.push(...congruentTrials);
-
-  // Reversal Practice Block
-  const reversalPractice = familiarBrands.concat(unfamiliarBrands).map(word => {
-    return {
-      type: jsPsychCategorizeHtml,
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      key_answer: unfamiliarBrands.includes(word) ? 'f' : 'j',
-      choices: ['f', 'j'],
-      prompt: '<p>Press F for Unfamiliar | J for Familiar</p>',
-      show_stim_with_feedback: true,
-      feedback_duration: 500
-    };
-  });
-  timeline.push(...reversalPractice);
-
-  // Test Block: Incongruent (Familiar + Negative vs. Unfamiliar + Positive)
-  const incongruentWords = familiarBrands.concat(negativeWords).concat(unfamiliarBrands).concat(positiveWords);
-  const incongruentTrials = jsPsych.randomization.shuffle(incongruentWords).map(word => {
-    return {
-      type: jsPsychCategorizeHtml,
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      key_answer:
-        (unfamiliarBrands.includes(word) || positiveWords.includes(word)) ? 'f' : 'j',
-      choices: ['f', 'j'],
-      prompt: '<p>Press F for Unfamiliar/Positive | J for Familiar/Negative</p>',
-      data: { block: 'incongruent' },
-      show_stim_with_feedback: true,
-      feedback_duration: 300
-    };
-  });
-  timeline.push(...incongruentTrials);
-
-  jsPsych.init({
-    timeline: timeline,
-    on_finish: function() {
-      jsPsych.data.displayData();
-    }
-  });
-</script>
 </html>
