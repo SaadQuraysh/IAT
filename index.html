@@ -28,7 +28,7 @@
     }
   </style>
 </head>
-<body></body>
+<body ontouchstart="">
 <script>
   const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
   const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
@@ -36,6 +36,19 @@
   const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
 
   const timeline = [];
+
+  // Touch handler: start experiment on touch anywhere
+  document.addEventListener('touchstart', function handleTouchStart() {
+    if (!jsPsych.getStartTime()) {
+      jsPsych.init({
+        timeline: timeline,
+        on_finish: function() {
+          jsPsych.data.displayData();
+        }
+      });
+      document.removeEventListener('touchstart', handleTouchStart);
+    }
+  });
 
   timeline.push({
     type: 'html-keyboard-response',
@@ -77,11 +90,15 @@
     timeline.push(categorize(word, correctKey, 'F = Unfamiliar/Positive | J = Familiar/Negative', 'incongruent'));
   });
 
-  jsPsych.init({
-    timeline: timeline,
-    on_finish: function() {
-      jsPsych.data.displayData();
-    }
-  });
+  // For non-touch devices, fallback to keyboard start
+  if (!('ontouchstart' in window)) {
+    jsPsych.init({
+      timeline: timeline,
+      on_finish: function() {
+        jsPsych.data.displayData();
+      }
+    });
+  }
 </script>
+</body>
 </html>
