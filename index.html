@@ -1,36 +1,41 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IAT – Brand Preference</title>
+  <title>IAT – Brand Preference (Mobile Optimized)</title>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-categorize-html.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f9f9f9;
+      margin: 0;
+      padding: 1em;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 1em;
     }
-    .jspsych-content { font-size: 5vw; text-align: center; }
+    .jspsych-content {
+      font-size: 5vw;
+      text-align: center;
+    }
     @media (max-width: 600px) {
-      .jspsych-content { font-size: 18px; }
+      .jspsych-content {
+        font-size: 18px;
+      }
     }
-    .response-buttons {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-    }
-    .response-buttons button {
+    button {
+      font-size: 18px;
       padding: 10px 20px;
-      font-size: 20px;
-      cursor: pointer;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007BFF;
+      color: white;
     }
   </style>
 </head>
@@ -40,24 +45,81 @@
   const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
   const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
   const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
-
   const timeline = [];
+  const trialData = [];
 
   timeline.push({
     type: 'html-button-response',
-    stimulus: '<p>Welcome to the Implicit Association Test.<br>Click a button to begin.</p>',
-    choices: ['Start']
+    stimulus: '<p>Welcome to the Implicit Association Test.<br>Tap the button below to begin.</p>',
+    choices: ['Begin']
   });
 
-  function categorize(word, key_answer, prompt, block) {
+  function categorizeTrial(word, isFamiliarOrPositive, blockLabel) {
     return {
       type: 'html-button-response',
-      stimulus: ⁠ <p style='font-size:32px;'>${word}</p> ⁠,
-      choices: ['Familiar/Positive', 'Unfamiliar/Negative'],
-      correct_response: key_answer,
-      prompt: ⁠ <p>${prompt}</p> ⁠,
-      data: { block: block }
+      stimulus: `<p style='font-size:32px;'>${word}</p>`,
+      choices: ['Familiar / Positive', 'Unfamiliar / Negative'],
+      data: { 
+        stimulus: word, 
+        category: isFamiliarOrPositive ? 'Familiar/Positive' : 'Unfamiliar/Negative',
+        block: blockLabel 
+      },
+      on_finish: function(data) {
+        trialData.push({
+          block: data.block,
+          rt: data.rt
+        });
+      }
     };
   }
 
-  // Practice: Familiar
+  const congruentWords = familiarBrands.concat(positiveWords, unfamiliarBrands, negativeWords);
+  jsPsych.randomization.shuffle(congruentWords).forEach(word => {
+    const isFamiliarOrPositive = familiarBrands.includes(word) || positiveWords.includes(word);
+    timeline.push(categorizeTrial(word, isFamiliarOrPositive, 'congruent'));
+  });
+
+  const incongruentWords = unfamiliarBrands.concat(positiveWords, familiarBrands, negativeWords);
+  jsPsych.randomization.shuffle(incongruentWords).forEach(word => {
+    const isFamiliarOrPositive = unfamiliarBrands.includes(word) || positiveWords.includes(word);
+    timeline.push(categorizeTrial(word, isFamiliarOrPositive, 'incongruent'));
+  });
+
+  timeline.push({
+    type: 'html-button-response',
+    stimulus: '<p>Thank you for completing the IAT. Tap to view results.</p>',
+    choices: ['Show Results'],
+    on_finish: function() {
+      calculateDScore();
+    }
+  });
+
+  function calculateDScore() {
+    const congruentRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
+    const incongruentRTs = trialData.filter(t => t.block === 'incongruent').map(t => t.rt);
+    const meanCongruent = average(congruentRTs);
+    const meanIncongruent = average(incongruentRTs);
+    const sd = pooledSD(congruentRTs, incongruentRTs);
+    const dScore = (meanIncongruent - meanCongruent) / sd;
+    const result = `D-score: ${dScore.toFixed(3)}\n(Positive = implicit preference for familiar brands)`;
+    alert(result);
+    jsPsych.data.get().addToAll({ dScore });
+    jsPsych.data.displayData();
+  }
+
+  function average(arr) {
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+
+  function pooledSD(a, b) {
+    const all = a.concat(b);
+    const mean = average(all);
+    const sqDiffs = all.map(x => Math.pow(x - mean, 2));
+    return Math.sqrt(sqDiffs.reduce((a, b) => a + b, 0) / (all.length - 1));
+  }
+
+  jsPsych.init({
+    timeline: timeline
+  });
+</script>
+</html>
