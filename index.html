@@ -1,9 +1,8 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IAT – Brand Preference (Mobile Optimized)</title>
+  <title>IAT – Brand Preference (D-score Capturing)</title>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet">
@@ -41,85 +40,76 @@
 </head>
 <body></body>
 <script>
-  const familiarBrands = ['Amazon', 'Nike', 'Apple', 'Coca-Cola'];
-  const unfamiliarBrands = ['EcoNudge', 'Brandless', 'Everlane', 'Boondh'];
-  const positiveWords = ['Trustworthy', 'Reliable', 'Innovative', 'Smart'];
-  const negativeWords = ['Risky', 'Unknown', 'Cheap', 'Unstable'];
+  const familiar = ['Nike', 'Coca-Cola', 'Apple'];
+  const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix'];
+  const positive = ['Reliable', 'Quality', 'Trustworthy'];
+  const negative = ['Unreliable', 'Cheap', 'Risky'];
   const timeline = [];
   const trialData = [];
 
   timeline.push({
     type: 'html-button-response',
-    stimulus: '<p>Welcome to the Implicit Association Test.<br>Tap the button below to begin.</p>',
+    stimulus: '<p>Welcome to the IAT.<br>Tap to begin.</p>',
     choices: ['Begin']
   });
 
-  function categorizeTrial(word, isFamiliarOrPositive, blockLabel) {
+  function addTrial(word, isTargetE, block) {
     return {
       type: 'html-button-response',
       stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      choices: ['Familiar / Positive', 'Unfamiliar / Negative'],
-      data: { 
-        stimulus: word, 
-        category: isFamiliarOrPositive ? 'Familiar/Positive' : 'Unfamiliar/Negative',
-        block: blockLabel 
-      },
+      choices: ['E', 'I'],
+      data: { word, block, correct: isTargetE ? 'E' : 'I' },
       on_finish: function(data) {
-        trialData.push({
-          block: data.block,
-          rt: data.rt
-        });
+        trialData.push({ block: data.block, rt: data.rt });
       }
     };
   }
 
-  const congruentWords = familiarBrands.concat(positiveWords, unfamiliarBrands, negativeWords);
-  jsPsych.randomization.shuffle(congruentWords).forEach(word => {
-    const isFamiliarOrPositive = familiarBrands.includes(word) || positiveWords.includes(word);
-    timeline.push(categorizeTrial(word, isFamiliarOrPositive, 'congruent'));
+  familiar.forEach(word => timeline.push(addTrial(word, true, 'practice-familiar')));
+  unfamiliar.forEach(word => timeline.push(addTrial(word, false, 'practice-familiar')));
+  positive.forEach(word => timeline.push(addTrial(word, true, 'practice-valence')));
+  negative.forEach(word => timeline.push(addTrial(word, false, 'practice-valence')));
+
+  const congruent = [...familiar, ...positive, ...unfamiliar, ...negative];
+  jsPsych.randomization.shuffle(congruent).forEach(word => {
+    const isTargetE = familiar.includes(word) || positive.includes(word);
+    timeline.push(addTrial(word, isTargetE, 'congruent'));
   });
 
-  const incongruentWords = unfamiliarBrands.concat(positiveWords, familiarBrands, negativeWords);
-  jsPsych.randomization.shuffle(incongruentWords).forEach(word => {
-    const isFamiliarOrPositive = unfamiliarBrands.includes(word) || positiveWords.includes(word);
-    timeline.push(categorizeTrial(word, isFamiliarOrPositive, 'incongruent'));
+  const incongruent = [...familiar, ...negative, ...unfamiliar, ...positive];
+  jsPsych.randomization.shuffle(incongruent).forEach(word => {
+    const isTargetE = unfamiliar.includes(word) || positive.includes(word);
+    timeline.push(addTrial(word, isTargetE, 'incongruent'));
   });
 
   timeline.push({
     type: 'html-button-response',
-    stimulus: '<p>Thank you for completing the IAT. Tap to view results.</p>',
-    choices: ['Show Results'],
-    on_finish: function() {
-      calculateDScore();
-    }
+    stimulus: 'Test complete. Tap below to submit your responses.',
+    choices: ['Submit'],
+    on_finish: calculateDScore
   });
 
   function calculateDScore() {
-    const congruentRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
-    const incongruentRTs = trialData.filter(t => t.block === 'incongruent').map(t => t.rt);
-    const meanCongruent = average(congruentRTs);
-    const meanIncongruent = average(incongruentRTs);
-    const sd = pooledSD(congruentRTs, incongruentRTs);
-    const dScore = (meanIncongruent - meanCongruent) / sd;
-    const result = `D-score: ${dScore.toFixed(3)}\n(Positive = implicit preference for familiar brands)`;
-    alert(result);
-    jsPsych.data.get().addToAll({ dScore });
-    jsPsych.data.displayData();
+    const cRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
+    const iRTs = trialData.filter(t => t.block === 'incongruent').map(t => t.rt);
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const pooledSD = arr => {
+      const m = mean(arr);
+      return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b) / (arr.length - 1));
+    };
+    const d = (mean(iRTs) - mean(cRTs)) / pooledSD([...cRTs, ...iRTs]);
+    const result = { dScore: d.toFixed(3), trials: trialData };
+
+    fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result)
+    });
+
+    alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity bias)`);
   }
 
-  function average(arr) {
-    return arr.reduce((a, b) => a + b, 0) / arr.length;
-  }
-
-  function pooledSD(a, b) {
-    const all = a.concat(b);
-    const mean = average(all);
-    const sqDiffs = all.map(x => Math.pow(x - mean, 2));
-    return Math.sqrt(sqDiffs.reduce((a, b) => a + b, 0) / (all.length - 1));
-  }
-
-  jsPsych.init({
-    timeline: timeline
-  });
+  jsPsych.init({ timeline });
 </script>
 </html>
