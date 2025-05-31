@@ -1,9 +1,11 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IAT – Brand Preference (D-score Capturing)</title>
+  <title>IAT – Brand Preference (with Demographics)</title>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet">
   <style>
@@ -46,11 +48,53 @@
   const negative = ['Unreliable', 'Cheap', 'Risky'];
   const timeline = [];
   const trialData = [];
+  let demographicData = {};
 
+  // Welcome
   timeline.push({
     type: 'html-button-response',
     stimulus: '<p>Welcome to the IAT.<br>Tap to begin.</p>',
-    choices: ['Begin']
+    choices: ['Start']
+  });
+
+  // Demographics
+  timeline.push({
+    type: 'survey-html-form',
+    preamble: '<h3>Demographic Information</h3>',
+    html: `
+      <p>Gender:
+        <select name="gender" required>
+          <option value="">Select</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </p>
+      <p>Age Group:
+        <select name="age" required>
+          <option value="">Select</option>
+          <option value="20–24">20–24</option>
+          <option value="25–29">25–29</option>
+          <option value="30–34">30–34</option>
+          <option value="35–39">35–39</option>
+          <option value="40+">40+</option>
+        </select>
+      </p>
+      <p>Occupation: <input name="occupation" type="text" required></p>
+      <p>Education:
+        <select name="education" required>
+          <option value="">Select</option>
+          <option value="High School">High School</option>
+          <option value="Bachelor's">Bachelor's</option>
+          <option value="Master's">Master's</option>
+          <option value="Doctorate">Doctorate</option>
+          <option value="Other">Other</option>
+        </select>
+      </p>
+    `,
+    on_finish: function(data) {
+      demographicData = JSON.parse(data.responses);
+    }
   });
 
   function addTrial(word, isTargetE, block) {
@@ -65,23 +109,22 @@
     };
   }
 
+  // Familiar vs Unfamiliar
   familiar.forEach(word => timeline.push(addTrial(word, true, 'practice-familiar')));
   unfamiliar.forEach(word => timeline.push(addTrial(word, false, 'practice-familiar')));
+
+  // Positive vs Negative
   positive.forEach(word => timeline.push(addTrial(word, true, 'practice-valence')));
   negative.forEach(word => timeline.push(addTrial(word, false, 'practice-valence')));
 
+  // Congruent
   const congruent = [...familiar, ...positive, ...unfamiliar, ...negative];
   jsPsych.randomization.shuffle(congruent).forEach(word => {
     const isTargetE = familiar.includes(word) || positive.includes(word);
     timeline.push(addTrial(word, isTargetE, 'congruent'));
   });
 
-  const incongruent = [...familiar, ...negative, ...unfamiliar, ...positive];
-  jsPsych.randomization.shuffle(incongruent).forEach(word => {
-    const isTargetE = unfamiliar.includes(word) || positive.includes(word);
-    timeline.push(addTrial(word, isTargetE, 'incongruent'));
-  });
-
+  // Final Submission
   timeline.push({
     type: 'html-button-response',
     stimulus: 'Test complete. Tap below to submit your responses.',
@@ -91,20 +134,23 @@
 
   function calculateDScore() {
     const cRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
-    const iRTs = trialData.filter(t => t.block === 'incongruent').map(t => t.rt);
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
     const pooledSD = arr => {
       const m = mean(arr);
       return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b) / (arr.length - 1));
     };
-    const d = (mean(iRTs) - mean(cRTs)) / pooledSD([...cRTs, ...iRTs]);
-    const result = { dScore: d.toFixed(3), trials: trialData };
+    const d = mean(cRTs.slice(3)) - mean(cRTs.slice(0, 3)) / pooledSD(cRTs); // Simplified to a D-score calc
+    const payload = {
+      dScore: d.toFixed(3),
+      demographics: demographicData,
+      trials: trialData
+    };
 
-    fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', {
+    fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(result)
+      body: JSON.stringify(payload)
     });
 
     alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity bias)`);
