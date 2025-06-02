@@ -40,6 +40,7 @@
 </head>
 <body>
   <div id="results-display"></div>
+  <div id="jspsych-target"></div>
 </body>
 <script>
 const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
@@ -60,7 +61,8 @@ timeline.push({
   type: 'html-button-response',
   stimulus: `
     <h3>Welcome to the IAT</h3>
-    <p>This test takes approximately 5–7 minutes and helps us study unconscious brand associations. Stay sharp!</p>
+    <p>This test takes approximately 5–7 minutes and helps us study unconscious brand associations.You have to categorize items into groups as fast as you can.</p>
+    <p>These are the four groups and the items that belong to each Stay sharp!</p>
     <table border="1" cellpadding="5">
       <tr><th>Category</th><th>Items</th></tr>
       <tr><td>Familiar</td><td>${familiar.join(', ')}</td></tr>
@@ -195,7 +197,7 @@ function calculateDScore() {
   };
 
   // Replace this URL with your actual Google Apps Script deployed endpoint
-  const endpoint = 'https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec';
+  const endpoint = 'https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec';
 
   fetch(endpoint, {
     method: 'POST',
@@ -218,6 +220,9 @@ function calculateDScore() {
 }
 
 // Initialize the experiment
-jsPsych.init({ timeline });
+jsPsych.init({
+  timeline: timeline,
+  display_element: 'jspsych-target'
+});
 </script>
 </html>
