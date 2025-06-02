@@ -23,10 +23,11 @@
     .jspsych-content {
       font-size: 5vw;
       text-align: center;
+      max-width: 800px;
     }
     @media (max-width: 600px) {
       .jspsych-content {
-        font-size: 18px;
+        font-size: 16px;
       }
     }
     button {
@@ -37,6 +38,55 @@
       border-radius: 5px;
       background-color: #007BFF;
       color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .welcome-container {
+      border: 2px solid #333;
+      border-radius: 10px;
+      padding: 20px;
+      background: #ffffff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin: 20px auto;
+      max-width: 700px;
+    }
+    .welcome-box {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+      background: #f8f8f8;
+      text-align: center;
+    }
+    .table-box {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+      background: #f8f8f8;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0 auto;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #e0e0e0;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr.empty-row {
+      background-color: transparent;
     }
   </style>
 </head>
@@ -56,7 +106,26 @@
   // Welcome
   timeline.push({
     type: 'html-button-response',
-    stimulus: '<p>Welcome to the IAT.<br>Tap to begin.</p>',
+    stimulus: `
+      <div class="welcome-container">
+        <div class="welcome-box">
+          <p>Welcome to the IAT. Next, you will use the 'E' and 'I' computer keys to categorize items into groups as fast as you can. These are the four groups and the items that belong to each:</p>
+        </div>
+        <div class="table-box">
+          <table>
+            <tr><th>Category</th><th>Items</th></tr>
+            <tr><td>Familiar</td><td>${familiar.join(', ')}</td></tr>
+            <tr><td>Unfamiliar</td><td>${unfamiliar.join(', ')}</td></tr>
+            <tr><td>Trustworthy</td><td>${trustworthy.join(', ')}</td></tr>
+            <tr><td>Non-reliable</td><td>${non_reliable.join(', ')}</td></tr>
+            <tr class="empty-row"><td></td><td></td></tr>
+          </table>
+        </div>
+        <div class="welcome-box">
+          <p>There are seven parts. The instructions change for each part. Pay attention!</p>
+        </div>
+      </div>
+    `,
     choices: ['Start']
   });
 
@@ -194,16 +263,15 @@
       .filter(t => t.block === 'congruent1' || t.block === 'congruent2')
       .map(t => t.rt);
     
-    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length || 0;
     const pooledSD = arr => {
       const m = mean(arr);
-      return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b) / (arr.length - 1));
+      return arr.length > 1 ? Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b, 0) / (arr.length - 1)) : 0;
     };
     
-    // Calculate D-score using congruent blocks
     const meanCongruent1 = mean(userData.trials.filter(t => t.block === 'congruent1').map(t => t.rt));
     const meanCongruent2 = mean(userData.trials.filter(t => t.block === 'congruent2').map(t => t.rt));
-    const d = (meanCongruent2 - meanCongruent1) / pooledSD(congruentRTs);
+    const d = (meanCongruent2 - meanCongruent1) / (pooledSD(congruentRTs) || 1); // Avoid division by zero
     
     const payload = {
       dScore: d.toFixed(3),
@@ -215,20 +283,22 @@
     
     console.log('Sending payload to server:', payload);
     
-   fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
+    fetch('https://script.google.com/macros/s/AKfycbwcWvpeWnyF9bHksC2hN8xN0n6TqN5fM2L0zYUcH3D8gU0lL3cGbFsj0r2P_YT3lWQUbU0n/exec', {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
-    .then(response => response.text())
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.text();
+    })
     .then(text => {
       console.log('Server response:', text);
-      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent to server: ${text}`);
+      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent successfully: ${text}`);
     })
     .catch(error => {
       console.error('Error sending data:', error);
-      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nError sending data: ${error.message}`);
+      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nFailed to send data: ${error.message}\nCheck browser console for details.`);
     });
   }
 
