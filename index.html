@@ -48,8 +48,10 @@
   const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
   const non_reliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
   const timeline = [];
-  const trialData = [];
-  let demographicData = {};
+  const userData = {
+    demographics: {},
+    trials: []
+  };
 
   // Welcome
   timeline.push({
@@ -81,7 +83,17 @@
           <option value="40+">40+</option>
         </select>
       </p>
-      <p>Occupation: <input name="occupation" type="text" required></p>
+      <p>Occupation:
+        <select name="occupation" required>
+          <option value="">Select</option>
+          <option value="Student">Student</option>
+          <option value="Engineer">Engineer</option>
+          <option value="Teacher">Teacher</option>
+          <option value="Healthcare Professional">Healthcare Professional</option>
+          <option value="Business Professional">Business Professional</option>
+          <option value="Other">Other</option>
+        </select>
+      </p>
       <p>Education:
         <select name="education" required>
           <option value="">Select</option>
@@ -94,7 +106,13 @@
       </p>
     `,
     on_finish: function(data) {
-      demographicData = data.response;
+      userData.demographics = {
+        gender: data.response.gender,
+        age: data.response.age,
+        occupation: data.response.occupation,
+        education: data.response.education,
+        timestamp: new Date().toISOString()
+      };
     }
   });
 
@@ -111,11 +129,12 @@
       },
       on_finish: function(data) {
         const correct = data.response === data.correct ? 1 : 0;
-        trialData.push({ 
+        userData.trials.push({ 
           block: block, 
           word: word, 
           rt: data.rt, 
-          correct: correct 
+          correct: correct,
+          timestamp: new Date().toISOString()
         });
       }
     };
@@ -157,8 +176,18 @@
     on_finish: calculateDScore
   });
 
+  // Thank You Note
+  timeline.push({
+    type: 'html-button-response',
+    stimulus: '<h3>Thank You!</h3><p>We greatly appreciate your participation in this study. Your responses will help advance our research on brand preferences.</p>',
+    choices: ['Finish'],
+    on_finish: function() {
+      // Optional: Add any cleanup or final actions here
+    }
+  });
+
   function calculateDScore() {
-    const congruentRTs = trialData
+    const congruentRTs = userData.trials
       .filter(t => t.block === 'congruent1' || t.block === 'congruent2')
       .map(t => t.rt);
     
@@ -169,14 +198,16 @@
     };
     
     // Calculate D-score using congruent blocks
-    const meanCongruent1 = mean(trialData.filter(t => t.block === 'congruent1').map(t => t.rt));
-    const meanCongruent2 = mean(trialData.filter(t => t.block === 'congruent2').map(t => t.rt));
+    const meanCongruent1 = mean(userData.trials.filter(t => t.block === 'congruent1').map(t => t.rt));
+    const meanCongruent2 = mean(userData.trials.filter(t => t.block === 'congruent2').map(t => t.rt));
     const d = (meanCongruent2 - meanCongruent1) / pooledSD(congruentRTs);
     
     const payload = {
       dScore: d.toFixed(3),
-      demographics: demographicData,
-      trials: trialData
+      userData: {
+        demographics: userData.demographics,
+        trials: userData.trials
+      }
     };
 
     fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
