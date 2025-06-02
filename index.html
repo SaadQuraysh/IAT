@@ -215,8 +215,9 @@
     
     console.log('Sending payload to server:', payload);
     
-    fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
+   fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
