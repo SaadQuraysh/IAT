@@ -34,12 +34,22 @@ const timeline = [];
 // Welcome
 timeline.push({
   type: 'html-button-response',
-  stimulus: `<h3>Welcome to the Implicit Association Test</h3>
-    <p>This test measures automatic brand associations.</p>
-    <p>You’ll categorize brand names and adjectives quickly.</p>`,
+  stimulus: `
+    <h2>Implicit Association Test</h2>
+    <p>Next, you will use on-screen buttons (or 'E' and 'I' keys on keyboard) to categorize items into groups as fast as you can.</p>
+    <table border="1" cellpadding="10">
+      <tr><th>Category</th><th>Items</th></tr>
+      <tr><td>Familiar</td><td>Nike, Coca-Cola, Apple, Adidas, Pepsi</td></tr>
+      <tr><td>Unfamiliar</td><td>Zyxel, Qdoba, Vuzix, Yuneec, Kudelski</td></tr>
+      <tr><td>Trustworthy</td><td>Reliable, Quality, Trustworthy, Dependable, Reputable</td></tr>
+      <tr><td>Non-reliable</td><td>Unreliable, Cheap, Risky, Faulty, Unstable</td></tr>
+    </table>
+    <p>There are six parts. The instructions change for each part. Pay attention!</p>
+    <p style="margin-top: 2em; font-style: italic;">· Project Implicit ·</p>
+  `,
   choices: ['Begin']
 });
-
+  
 // Demographics
 timeline.push({
   type: 'survey-html-form',
@@ -56,6 +66,7 @@ timeline.push({
 });
 
 // Trial builder
+  timeline.push({
 function addTrial(word, left, right, block, correctLeft) {
   return {
     type: 'html-button-response',
