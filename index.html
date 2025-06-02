@@ -154,12 +154,21 @@ timeline.push({
       trials: userData.trials
     };
 
-    fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    fetch('https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Saad',
+    gender: 'Other',
+    dScore: 0.76
+  })
+})
+.then(res => res.text())
+.then(data => console.log('Server says:', data))
+.catch(err => console.error('Fetch error:', err)
+);
 
     alert(`D-Score: ${d.toFixed(3)}\n(Positive = Familiarity Bias)`);
   }
