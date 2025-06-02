@@ -283,21 +283,24 @@
     
     console.log('Sending payload to server:', payload);
     
-    fetch('https://script.google.com/macros/s/AKfycbwcWvpeWnyF9bHksC2hN8xN0n6TqN5fM2L0zYUcH3D8gU0lL3cGbFsj0r2P_YT3lWQUbU0n/exec', {
+    fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
     .then(response => {
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      console.log('Fetch response status:', response.status, response.statusText);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status} (${response.statusText})`);
+      }
       return response.text();
     })
     .then(text => {
-      console.log('Server response:', text);
-      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent successfully: ${text}`);
+      console.log('Server response text:', text || 'No response text received');
+      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent successfully: ${text || 'No response from server'}`);
     })
     .catch(error => {
-      console.error('Error sending data:', error);
+      console.error('Error sending data:', error.message);
       alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nFailed to send data: ${error.message}\nCheck browser console for details.`);
     });
   }
