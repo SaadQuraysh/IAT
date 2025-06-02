@@ -113,6 +113,7 @@
         education: data.response.education,
         timestamp: new Date().toISOString()
       };
+      console.log('Demographics stored:', userData.demographics);
     }
   });
 
@@ -129,13 +130,15 @@
       },
       on_finish: function(data) {
         const correct = data.response === data.correct ? 1 : 0;
-        userData.trials.push({ 
+        const trial = { 
           block: block, 
           word: word, 
           rt: data.rt, 
           correct: correct,
           timestamp: new Date().toISOString()
-        });
+        };
+        userData.trials.push(trial);
+        console.log('Trial recorded:', trial);
       }
     };
   }
@@ -182,7 +185,7 @@
     stimulus: '<h3>Thank You!</h3><p>We greatly appreciate your participation in this study. Your responses will help advance our research on brand preferences.</p>',
     choices: ['Finish'],
     on_finish: function() {
-      // Optional: Add any cleanup or final actions here
+      console.log('Test completed. Final userData:', userData);
     }
   });
 
@@ -209,15 +212,23 @@
         trials: userData.trials
       }
     };
-
+    
+    console.log('Sending payload to server:', payload);
+    
     fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
+    })
+    .then(response => response.text())
+    .then(text => {
+      console.log('Server response:', text);
+      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent to server: ${text}`);
+    })
+    .catch(error => {
+      console.error('Error sending data:', error);
+      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nError sending data: ${error.message}`);
     });
-
-    alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)`);
   }
 
   jsPsych.init({ timeline });
