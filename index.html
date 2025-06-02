@@ -42,10 +42,11 @@
 </head>
 <body></body>
 <script>
-  const familiar = ['Nike', 'Coca-Cola', 'Apple'];
-  const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix'];
-  const positive = ['Reliable', 'Quality', 'Trustworthy'];
-  const negative = ['Unreliable', 'Cheap', 'Risky'];
+  // Expanded lists to 5 items each
+  const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
+  const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
+  const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
+  const non_reliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
   const timeline = [];
   const trialData = [];
   let demographicData = {};
@@ -93,35 +94,59 @@
       </p>
     `,
     on_finish: function(data) {
-      demographicData = data.response;  // returns as an object already in newer jsPsych versions
+      demographicData = data.response;
     }
   });
 
-  function addTrial(word, isTargetE, block) {
+  // Trial creation function
+  function addTrial(word, leftCategory, rightCategory, block) {
     return {
-    type: 'html-button-response',
-    stimulus: `<p style='font-size:32px;'>${word}</p>`,
-    choices: ['Familiar', 'Unfamiliar'],
-    data: { word: word, block: block, correct: isTargetE ? 'Familiar' : 'Unfamiliar' },
-    on_finish: function(data) {
-      trialData.push({ block: block, rt: data.rt });
-    }
-  };
-}
+      type: 'html-button-response',
+      stimulus: `<p style='font-size:32px;'>${word}</p>`,
+      choices: [leftCategory, rightCategory],
+      data: { 
+        word: word, 
+        block: block, 
+        correct: familiar.includes(word) || trustworthy.includes(word) ? leftCategory : rightCategory 
+      },
+      on_finish: function(data) {
+        const correct = data.response === data.correct ? 1 : 0;
+        trialData.push({ 
+          block: block, 
+          word: word, 
+          rt: data.rt, 
+          correct: correct 
+        });
+      }
+    };
+  }
 
-  // Familiar vs Unfamiliar
-  familiar.forEach(word => timeline.push(addTrial(word, true, 'practice-familiar')));
-  unfamiliar.forEach(word => timeline.push(addTrial(word, false, 'practice-familiar')));
+  // Block 1: Familiar brands
+  familiar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'familiar')));
 
-  // Positive vs Negative
-  positive.forEach(word => timeline.push(addTrial(word, true, 'practice-valence')));
-  negative.forEach(word => timeline.push(addTrial(word, false, 'practice-valence')));
+  // Block 2: Unfamiliar brands
+  unfamiliar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'unfamiliar')));
 
-  // Congruent
-  const congruent = [...familiar, ...positive, ...unfamiliar, ...negative];
-  jsPsych.randomization.shuffle(congruent).forEach(word => {
-    const isTargetE = familiar.includes(word) || positive.includes(word);
-    timeline.push(addTrial(word, isTargetE, 'congruent'));
+  // Block 3: Trustworthy attributes
+  trustworthy.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'trustworthy')));
+
+  // Block 4: Non-reliable attributes
+  non_reliable.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'non-reliable')));
+
+  // Block 5: Congruent (Familiar/Trustworthy vs Unfamiliar/Non-reliable)
+  const congruent1 = [
+    ...familiar.map(word => ({ word, isPositive: true })),
+    ...trustworthy.map(word => ({ word, isPositive: true })),
+    ...unfamiliar.map(word => ({ word, isPositive: false })),
+    ...non_reliable.map(word => ({ word, isPositive: false }))
+  ];
+  jsPsych.randomization.shuffle(congruent1).slice(0, 5).forEach(item => {
+    timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent1'));
+  });
+
+  // Block 6: Congruent (Familiar/Trustworthy vs Unfamiliar/Non-reliable, repeated)
+  jsPsych.randomization.shuffle(congruent1).slice(0, 5).forEach(item => {
+    timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent2'));
   });
 
   // Final Submission
@@ -133,13 +158,21 @@
   });
 
   function calculateDScore() {
-    const cRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
+    const congruentRTs = trialData
+      .filter(t => t.block === 'congruent1' || t.block === 'congruent2')
+      .map(t => t.rt);
+    
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
     const pooledSD = arr => {
       const m = mean(arr);
       return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b) / (arr.length - 1));
     };
-    const d = (mean(cRTs.slice(3)) - mean(cRTs.slice(0, 3))) / pooledSD(cRTs); // Simplified to a D-score calc
+    
+    // Calculate D-score using congruent blocks
+    const meanCongruent1 = mean(trialData.filter(t => t.block === 'congruent1').map(t => t.rt));
+    const meanCongruent2 = mean(trialData.filter(t => t.block === 'congruent2').map(t => t.rt));
+    const d = (meanCongruent2 - meanCongruent1) / pooledSD(congruentRTs);
+    
     const payload = {
       dScore: d.toFixed(3),
       demographics: demographicData,
@@ -153,7 +186,7 @@
       body: JSON.stringify(payload)
     });
 
-    alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity bias)`);
+    alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)`);
   }
 
   jsPsych.init({ timeline });
