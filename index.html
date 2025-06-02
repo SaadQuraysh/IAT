@@ -28,9 +28,19 @@
       cursor: pointer;
     }
     button:hover { background: #0056b3; }
+    #results-display {
+      background: #e6ffe6;
+      border: 1px solid #4CAF50;
+      padding: 1em;
+      margin-top: 1em;
+      display: none;
+      border-radius: 8px;
+    }
   </style>
 </head>
-<body></body>
+<body>
+  <div id="results-display"></div>
+</body>
 <script>
 const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
 const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
@@ -38,6 +48,7 @@ const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputa
 const non_reliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
 
 const userData = {
+  participantID: 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
   demographics: {},
   trials: []
 };
@@ -49,7 +60,7 @@ timeline.push({
   type: 'html-button-response',
   stimulus: `
     <h3>Welcome to the IAT</h3>
-    <p>You will categorize words using the 'E' and 'I' keys. There are seven parts. Stay sharp!</p>
+    <p>This test takes approximately 5–7 minutes and helps us study unconscious brand associations. Stay sharp!</p>
     <table border="1" cellpadding="5">
       <tr><th>Category</th><th>Items</th></tr>
       <tr><td>Familiar</td><td>${familiar.join(', ')}</td></tr>
@@ -80,108 +91,133 @@ timeline.push({
     </select></p>
   `,
   on_finish: function(data) {
-    const res = JSON.parse(data.responses);
+    const responses = JSON.parse(data.responses);
     userData.demographics = {
-      gender: res.gender,
-      age: res.age,
-      occupation: res.occupation,
-      education: res.education,
+      gender: responses.gender,
+      age: responses.age,
+      occupation: responses.occupation,
+      education: responses.education,
       timestamp: new Date().toISOString()
     };
   }
 });
 
-// Trial Generator
-function addTrial(word, leftLabel, rightLabel, blockName) {
+// Trial creation function
+function addTrial(word, leftCategory, rightCategory, block) {
   return {
     type: 'html-button-response',
-    stimulus: `<p style="font-size:32px;">${word}</p>`,
-    choices: [leftLabel, rightLabel],
-    data: { word, block: blockName },
+    stimulus: `<p style='font-size:32px;'>${word}</p>`,
+    choices: [leftCategory, rightCategory],
+    data: {
+      word: word,
+      block: block,
+      correct: (familiar.includes(word) || trustworthy.includes(word)) ? leftCategory : rightCategory
+    },
     on_finish: function(data) {
-      if (data.rt < 300 || data.rt > 5000) return; // skip invalid responses
-      const correctLeft = familiar.includes(word) || trustworthy.includes(word);
-      const correct = data.response === (correctLeft ? 0 : 1) ? 1 : 0;
-
+      const correct = data.response === data.correct ? 1 : 0;
       userData.trials.push({
-        word,
-        block: blockName,
+        block: block,
+        word: word,
         rt: data.rt,
-        correct,
-        response: data.response,
+        correct: correct,
         timestamp: new Date().toISOString()
       });
     }
   };
 }
 
-// Add Trials to Timeline
-familiar.forEach(w => timeline.push(addTrial(w, 'Familiar', 'Unfamiliar', 'familiar')));
-unfamiliar.forEach(w => timeline.push(addTrial(w, 'Familiar', 'Unfamiliar', 'unfamiliar')));
-trustworthy.forEach(w => timeline.push(addTrial(w, 'Trustworthy', 'Non-reliable', 'trustworthy')));
-non_reliable.forEach(w => timeline.push(addTrial(w, 'Trustworthy', 'Non-reliable', 'non-reliable')));
+// Blocks 1–4
+familiar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'familiar')));
+unfamiliar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'unfamiliar')));
+trustworthy.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'trustworthy')));
+non_reliable.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'non-reliable')));
 
-// Congruent Trials
-const congruentItems = [
-  ...familiar.map(w => ({ word: w, pos: true })),
-  ...trustworthy.map(w => ({ word: w, pos: true })),
-  ...unfamiliar.map(w => ({ word: w, pos: false })),
-  ...non_reliable.map(w => ({ word: w, pos: false }))
-];
-const shuffled = jsPsych.randomization.shuffle(congruentItems);
+// Block 5: Congruent 1
+jsPsych.randomization.shuffle([
+  ...familiar.map(word => ({ word, isPositive: true })),
+  ...trustworthy.map(word => ({ word, isPositive: true })),
+  ...unfamiliar.map(word => ({ word, isPositive: false })),
+  ...non_reliable.map(word => ({ word, isPositive: false }))
+])
+.slice(0, 5)
+.forEach(item => {
+  timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent1'));
+});
 
-shuffled.slice(0, 5).forEach(i => timeline.push(addTrial(i.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent1')));
-shuffled.slice(5, 10).forEach(i => timeline.push(addTrial(i.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent2')));
+// Block 6: Congruent 2 (repeat with shuffle)
+jsPsych.randomization.shuffle([
+  ...familiar.map(word => ({ word, isPositive: true })),
+  ...trustworthy.map(word => ({ word, isPositive: true })),
+  ...unfamiliar.map(word => ({ word, isPositive: false })),
+  ...non_reliable.map(word => ({ word, isPositive: false }))
+])
+.slice(0, 5)
+.forEach(item => {
+  timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent2'));
+});
 
-// Final Submit and D-Score
+// Submission Block
 timeline.push({
   type: 'html-button-response',
-  stimulus: '<p>Test complete. Ready to submit?</p>',
+  stimulus: 'Test complete. Tap below to submit your responses.',
   choices: ['Submit'],
-  on_finish: function() {
-    const filter = block => userData.trials.filter(t => t.block === block).map(t => t.rt);
-    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const sd = arr => {
-      const m = mean(arr);
-      return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b, 0) / arr.length);
-    };
-    const allCongruent = filter('congruent1').concat(filter('congruent2'));
-    const d = (mean(filter('congruent2')) - mean(filter('congruent1'))) / (sd(allCongruent) || 1);
-
-    const payload = {
-      dScore: d.toFixed(3),
-      demographics: userData.demographics,
-      trials: userData.trials
-    };
-
-    fetch('https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    name: 'Saad',
-    gender: 'Other',
-    dScore: 0.76
-  })
-})
-.then(res => res.text())
-.then(data => console.log('Server says:', data))
-.catch(err => console.error('Fetch error:', err)
-);
-
-    alert(`D-Score: ${d.toFixed(3)}\n(Positive = Familiarity Bias)`);
-  }
+  on_finish: calculateDScore
 });
 
 // Thank You
 timeline.push({
   type: 'html-button-response',
-  stimulus: '<h3>Thank You!</h3><p>Your participation is valued. Take care!</p>',
+  stimulus: '<h3>Thank You!</h3><p>We greatly appreciate your participation in this study.</p>',
   choices: ['Finish']
 });
 
-// Initialize
+// D-Score calculation + Submission
+function calculateDScore() {
+  const congruentRTs = userData.trials
+    .filter(t => t.block === 'congruent1' || t.block === 'congruent2')
+    .map(t => t.rt);
+
+  const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length || 0;
+  const pooledSD = arr => {
+    const m = mean(arr);
+    return arr.length > 1
+      ? Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a, b) => a + b, 0) / (arr.length - 1))
+      : 1;
+  };
+
+  const meanC1 = mean(userData.trials.filter(t => t.block === 'congruent1').map(t => t.rt));
+  const meanC2 = mean(userData.trials.filter(t => t.block === 'congruent2').map(t => t.rt));
+  const d = (meanC2 - meanC1) / pooledSD(congruentRTs);
+
+  const payload = {
+    dScore: d.toFixed(3),
+    userData
+  };
+
+  // Replace this URL with your actual Google Apps Script deployed endpoint
+  const endpoint = 'https://script.google.com/macros/s/YOUR_DEPLOYED_URL/exec';
+
+  fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.text())
+  .then(data => {
+    console.log('Server response:', data);
+    document.getElementById('results-display').innerHTML =
+      `<strong>D-Score:</strong> ${payload.dScore} <br>(Positive = Familiarity Bias)`;
+    document.getElementById('results-display').style.display = 'block';
+  })
+  .catch(error => {
+    console.error('Error sending data:', error);
+    document.getElementById('results-display').innerHTML =
+      'Error submitting your data. Please try again later.';
+    document.getElementById('results-display').style.display = 'block';
+  });
+}
+
+// Initialize the experiment
 jsPsych.init({ timeline });
 </script>
 </html>
