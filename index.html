@@ -93,21 +93,21 @@
       </p>
     `,
     on_finish: function(data) {
-      demographicData = JSON.parse(data.responses);
+      demographicData = data.response;  // returns as an object already in newer jsPsych versions
     }
   });
 
   function addTrial(word, isTargetE, block) {
     return {
-      type: 'html-button-response',
-      stimulus: `<p style='font-size:32px;'>${word}</p>`,
-      choices: ['E', 'I'],
-      data: { word, block, correct: isTargetE ? 'E' : 'I' },
-      on_finish: function(data) {
-        trialData.push({ block: data.block, rt: data.rt });
-      }
-    };
-  }
+    type: 'html-button-response',
+    stimulus: `<p style='font-size:32px;'>${word}</p>`,
+    choices: ['E', 'I'],
+    data: { word: word, block: block, correct: isTargetE ? 'Familiar' : 'Unfamiliar' },
+    on_finish: function(data) {
+      trialData.push({ block: block, rt: data.rt });
+    }
+  };
+}
 
   // Familiar vs Unfamiliar
   familiar.forEach(word => timeline.push(addTrial(word, true, 'practice-familiar')));
