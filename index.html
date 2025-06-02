@@ -2,180 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>IAT Brand Preference Simple</title>
+  <title>IAT – Brand Preference (Final)</title>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 2em; background: #f9f9f9; display: flex; flex-direction: column; align-items: center; }
-    .jspsych-content { max-width: 700px; font-size: 18px; }
-    button { background: #007BFF; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    #results { margin-top: 20px; padding: 1em; background: #e6ffe6; border-radius: 8px; border: 1px solid #4CAF50; display: none; max-width: 700px; }
+    body { font-family: Arial; padding: 2em; background: #f9f9f9; display: flex; flex-direction: column; align-items: center; }
+    .jspsych-content { max-width: 800px; font-size: 18px; }
+    #results { margin-top: 20px; padding: 1em; background: #e6ffe6; border-radius: 8px; display: none; }
   </style>
 </head>
 <body>
-  <div id="jspsych-target"></div>
-  <div id="results"></div>
+<div id="jspsych-target"></div>
+<div id="results"></div>
+<script>
+const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
+const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
+const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
+const nonReliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
 
-  <script>
-    const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
-    const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
-    const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
-    const non_reliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
+const userData = {
+  id: 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+  demographics: {},
+  trials: [],
+  dScore: null
+};
 
-    const userData = {
-      participantID: 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      demographics: {},
-      trials: []
-    };
+const timeline = [];
 
-    const timeline = [];
+// Welcome
+timeline.push({
+  type: 'html-button-response',
+  stimulus: `<h3>Welcome to the Implicit Association Test</h3>
+    <p>This test measures automatic brand associations.</p>
+    <p>You’ll categorize brand names and adjectives quickly.</p>`,
+  choices: ['Begin']
+});
 
-    // Welcome screen
-    timeline.push({
-      type: 'html-button-response',
-      stimulus: `
-        <h3>Welcome to the IAT</h3>
-        <p>This test takes about 5–7 minutes and helps us study unconscious brand associations.</p>
-        <p>Categories:</p>
-        <ul>
-          <li><strong>Familiar:</strong> ${familiar.join(', ')}</li>
-          <li><strong>Unfamiliar:</strong> ${unfamiliar.join(', ')}</li>
-          <li><strong>Trustworthy:</strong> ${trustworthy.join(', ')}</li>
-          <li><strong>Non-reliable:</strong> ${non_reliable.join(', ')}</li>
-        </ul>
-        <p>Try to categorize items as quickly and accurately as possible.</p>
-      `,
-      choices: ['Start']
-    });
+// Demographics
+timeline.push({
+  type: 'survey-html-form',
+  preamble: '<h3>Demographic Information</h3>',
+  html: `
+    <p>Gender: <select name="gender" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></p>
+    <p>Age Group: <select name="age" required><option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option></select></p>
+     <p>Occupation: <select name="occupation" required><option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
+    <p>Education: <select name="education" required><option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option></select></p>
+  `,
+  on_finish: data => {
+    userData.demographics = JSON.parse(data.responses);
+  }
+});
 
-    // Demographics form
-    timeline.push({
-      type: 'survey-html-form',
-      preamble: '<h3>Demographics</h3>',
-      html: `
-        <p>Gender: <select name="gender" required>
-          <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
-        </select></p>
-        <p>Age: <select name="age" required>
-          <option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option>
-        </select></p>
-        <p>Occupation: <select name="occupation" required>
-          <option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
-        </select></p>
-        <p>Education: <select name="education" required>
-          <option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option>
-        </select></p>
-      `,
-      on_finish: function(data) {
-        const resp = JSON.parse(data.responses);
-        userData.demographics = {...resp, timestamp: new Date().toISOString()};
-      }
-    });
-
-    // Helper: Add trial function
-    function addTrial(word, leftCat, rightCat, block) {
-      return {
-        type: 'html-button-response',
-        stimulus: `<p style="font-size:32px;">${word}</p>`,
-        choices: [leftCat, rightCat],
-        data: {
-          word,
-          block,
-          correct: (familiar.includes(word) || trustworthy.includes(word)) ? leftCat : rightCat
-        },
-        on_finish: function(data) {
-          const correct = data.response === data.correct ? 1 : 0;
-          userData.trials.push({
-            block: data.block,
-            word: data.word,
-            rt: data.rt,
-            correct,
-            timestamp: new Date().toISOString()
-          });
-        }
-      };
+// Trial builder
+function addTrial(word, left, right, block, correctLeft) {
+  return {
+    type: 'html-button-response',
+    stimulus: `<p style="font-size:32px;">${word}</p>`,
+    choices: [left, right],
+    data: { word, block, correct: correctLeft ? left : right },
+    on_finish: data => {
+      const correct = data.response === data.correct ? 1 : 0;
+      userData.trials.push({ word: data.word, block: data.block, rt: data.rt, correct });
     }
+  };
+}
 
-    // Add basic blocks (you can expand or randomize later)
-    familiar.forEach(w => timeline.push(addTrial(w, 'Familiar', 'Unfamiliar', 'familiar')));
-    unfamiliar.forEach(w => timeline.push(addTrial(w, 'Familiar', 'Unfamiliar', 'unfamiliar')));
-    trustworthy.forEach(w => timeline.push(addTrial(w, 'Trustworthy', 'Non-reliable', 'trustworthy')));
-    non_reliable.forEach(w => timeline.push(addTrial(w, 'Trustworthy', 'Non-reliable', 'non-reliable')));
+// Blocks
+timeline.push(...familiar.slice(0, 5).map(w => addTrial(w, 'Familiar', 'Unfamiliar', 'familiar', true)));
+timeline.push(...unfamiliar.slice(0, 5).map(w => addTrial(w, 'Familiar', 'Unfamiliar', 'unfamiliar', false)));
+timeline.push(...trustworthy.slice(0, 5).map(w => addTrial(w, 'Trustworthy', 'Non-reliable', 'trustworthy', true)));
+timeline.push(...nonReliable.slice(0, 5).map(w => addTrial(w, 'Trustworthy', 'Non-reliable', 'non-reliable', false)));
 
-    // Simple combined blocks (congruent)
-    const combinedItems = jsPsych.randomization.shuffle([
-      ...familiar.map(w => ({word: w, isPositive: true})),
-      ...trustworthy.map(w => ({word: w, isPositive: true})),
-      ...unfamiliar.map(w => ({word: w, isPositive: false})),
-      ...non_reliable.map(w => ({word: w, isPositive: false}))
-    ]).slice(0, 6);
+// Congruent (Familiar/Trust vs. Unfamiliar/Non-reliable)
+const congruent = [
+  ...familiar.slice(0, 3), ...trustworthy.slice(0, 2),
+  ...unfamiliar.slice(0, 3), ...nonReliable.slice(0, 2)
+];
+jsPsych.randomization.shuffle(congruent).forEach(w => {
+  const isFamiliarTrust = familiar.includes(w) || trustworthy.includes(w);
+  timeline.push(addTrial(w, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent', isFamiliarTrust));
+});
 
-    combinedItems.forEach(item => {
-      timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent'));
+// Incongruent (Reverse mapping)
+const incongruent = [
+  ...familiar.slice(0, 3), ...trustworthy.slice(0, 2),
+  ...unfamiliar.slice(0, 3), ...nonReliable.slice(0, 2)
+];
+jsPsych.randomization.shuffle(incongruent).forEach(w => {
+  const isFamiliarTrust = familiar.includes(w) || trustworthy.includes(w);
+  timeline.push(addTrial(w, 'Unfamiliar/Non-reliable', 'Familiar/Trustworthy', 'incongruent', !isFamiliarTrust));
+});
+
+// Submit + D-score
+timeline.push({
+  type: 'html-button-response',
+  stimulus: '<p>Test complete. Tap Submit to continue.</p>',
+  choices: ['Submit'],
+  on_finish: () => {
+    const cRT = userData.trials.filter(t => t.block === 'congruent').map(t => t.rt);
+    const iRT = userData.trials.filter(t => t.block === 'incongruent').map(t => t.rt);
+    const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+    const sd = a => {
+      const m = mean(a);
+      return Math.sqrt(a.reduce((sum, v) => sum + (v - m) ** 2, 0) / (a.length - 1));
+    };
+    const pooledSD = sd([...cRT, ...iRT]);
+    const d = ((mean(iRT) - mean(cRT)) / pooledSD) || 0;
+    userData.dScore = d.toFixed(3);
+
+    fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(userData)
+    })
+    .then(() => {
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').innerHTML = `
+        <h3>Thank You!</h3>
+        <p>Your D-Score: <strong>${userData.dScore}</strong></p>
+        <p>Your responses have been submitted.</p>`;
+    })
+    .catch(err => {
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').innerHTML = '<h3>Error</h3><p>Submission failed.</p>';
+      console.error(err);
     });
+  }
+});
 
-    // Submit and calculate D-score
-    timeline.push({
-      type: 'html-button-response',
-      stimulus: 'Test complete. Tap Submit to send your data.',
-      choices: ['Submit'],
-      on_finish: function() {
-        // Calculate mean RT for congruent trials
-        const congruentRTs = userData.trials.filter(t => t.block === 'congruent').map(t => t.rt);
-        const meanRT = arr => arr.reduce((a,b) => a+b, 0) / (arr.length || 1);
-        const sdRT = arr => {
-          const m = meanRT(arr);
-          return Math.sqrt(arr.reduce((sum,x) => sum + (x - m)**2, 0) / (arr.length -1 || 1));
-        };
+// Final screen
+timeline.push({
+  type: 'html-button-response',
+  stimulus: '<p>Press Finish to end the study.</p>',
+  choices: ['Finish']
+});
 
-        const meanCongruent = meanRT(congruentRTs);
-        const sdCongruent = sdRT(congruentRTs);
-
-        // D-score = mean RT / SD as a simple measure (you can improve with more blocks)
-        const dScore = (meanCongruent / sdCongruent) || 0;
-
-        userData.dScore = dScore.toFixed(3);
-
-        // POST to your Google Apps Script
-        fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(userData)
-        })
-        .then(res => res.text())
-        .then(resp => {
-          document.getElementById('results').style.display = 'block';
-          document.getElementById('results').innerHTML = `
-            <h3>Thank You!</h3>
-            <p>Your D-Score: <strong>${userData.dScore}</strong></p>
-            <p>Data submitted successfully.</p>
-          `;
-        })
-        .catch(err => {
-          document.getElementById('results').style.display = 'block';
-          document.getElementById('results').innerHTML = `
-            <h3>Submission Error</h3>
-            <p>Could not submit data. Please try again later.</p>
-          `;
-          console.error('Submission error:', err);
-        });
-      }
-    });
-
-    // Final thank you screen
-    timeline.push({
-      type: 'html-button-response',
-      stimulus: '<p>Press Finish to end the study.</p>',
-      choices: ['Finish']
-    });
-
-    jsPsych.init({
-      timeline,
-      display_element: 'jspsych-target'
-    });
-  </script>
+jsPsych.init({ timeline, display_element: 'jspsych-target' });
+</script>
 </body>
 </html>
