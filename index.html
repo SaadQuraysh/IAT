@@ -101,7 +101,7 @@
     return {
     type: 'html-button-response',
     stimulus: `<p style='font-size:32px;'>${word}</p>`,
-    choices: ['E', 'I'],
+    choices: ['Familiar', 'Unfamiliar'],
     data: { word: word, block: block, correct: isTargetE ? 'Familiar' : 'Unfamiliar' },
     on_finish: function(data) {
       trialData.push({ block: block, rt: data.rt });
