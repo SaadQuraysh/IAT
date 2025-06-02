@@ -41,7 +41,7 @@
 <body>
   <div id="results-display"></div>
   <div id="jspsych-target"></div>
-</body>
+
 <script>
 const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
 const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
@@ -61,8 +61,8 @@ timeline.push({
   type: 'html-button-response',
   stimulus: `
     <h3>Welcome to the IAT</h3>
-    <p>This test takes approximately 5–7 minutes and helps us study unconscious brand associations.You have to categorize items into groups as fast as you can.</p>
-    <p>These are the four groups and the items that belong to each Stay sharp!</p>
+    <p>This test takes approximately 5–7 minutes and helps us study unconscious brand associations. You have to categorize items into groups as fast as you can.</p>
+    <p>These are the four groups and the items that belong to each — stay sharp!</p>
     <table border="1" cellpadding="5">
       <tr><th>Category</th><th>Items</th></tr>
       <tr><td>Familiar</td><td>${familiar.join(', ')}</td></tr>
@@ -104,8 +104,35 @@ timeline.push({
   }
 });
 
-// Trial creation function
+// Helper to add a trial with correct choice index (0 = left button, 1 = right button)
 function addTrial(word, leftCategory, rightCategory, block) {
+  // Correct category logic: if word in left category list, correct = 0, else 1
+  // For blocks with combined labels like 'Familiar/Trustworthy', treat left as 0, right as 1
+  let correctIndex = 1; // default right
+  if (
+    (block === 'familiar' || block === 'unfamiliar') && (familiar.includes(word))
+  ) {
+    correctIndex = 0;
+  } else if (
+    (block === 'familiar' || block === 'unfamiliar') && (unfamiliar.includes(word))
+  ) {
+    correctIndex = 1;
+  } else if (
+    (block === 'trustworthy' || block === 'non-reliable') && trustworthy.includes(word)
+  ) {
+    correctIndex = 0;
+  } else if (
+    (block === 'trustworthy' || block === 'non-reliable') && non_reliable.includes(word)
+  ) {
+    correctIndex = 1;
+  } else if (
+    (block === 'congruent1' || block === 'congruent2')
+  ) {
+    // In congruent blocks left = Familiar/Trustworthy, right = Unfamiliar/Non-reliable
+    if (familiar.includes(word) || trustworthy.includes(word)) correctIndex = 0;
+    else correctIndex = 1;
+  }
+
   return {
     type: 'html-button-response',
     stimulus: `<p style='font-size:32px;'>${word}</p>`,
@@ -113,10 +140,10 @@ function addTrial(word, leftCategory, rightCategory, block) {
     data: {
       word: word,
       block: block,
-      correct: (familiar.includes(word) || trustworthy.includes(word)) ? leftCategory : rightCategory
+      correct: correctIndex
     },
     on_finish: function(data) {
-      const correct = data.response === data.correct ? 1 : 0;
+      const correct = (data.response === data.correct) ? 1 : 0;
       userData.trials.push({
         block: block,
         word: word,
@@ -128,37 +155,49 @@ function addTrial(word, leftCategory, rightCategory, block) {
   };
 }
 
-// Blocks 1–4
-familiar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'familiar')));
-unfamiliar.forEach(word => timeline.push(addTrial(word, 'Familiar', 'Unfamiliar', 'unfamiliar')));
-trustworthy.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'trustworthy')));
-non_reliable.forEach(word => timeline.push(addTrial(word, 'Trustworthy', 'Non-reliable', 'non-reliable')));
+// Function to create a block timeline with instructions + trials
+function createBlock(name, words, leftCat, rightCat) {
+  const blockTimeline = [];
+  blockTimeline.push({
+    type: 'html-button-response',
+    stimulus: `<h3>Block: ${name}</h3><p>Press Start to begin this block.</p>`,
+    choices: ['Start']
+  });
+  words.forEach(word => blockTimeline.push(addTrial(word, leftCat, rightCat, name)));
+  return blockTimeline;
+}
 
-// Block 5: Congruent 1
-jsPsych.randomization.shuffle([
-  ...familiar.map(word => ({ word, isPositive: true })),
-  ...trustworthy.map(word => ({ word, isPositive: true })),
-  ...unfamiliar.map(word => ({ word, isPositive: false })),
-  ...non_reliable.map(word => ({ word, isPositive: false }))
-])
-.slice(0, 5)
-.forEach(item => {
-  timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent1'));
-});
+// Blocks 1 & 2
+timeline.push(...createBlock('familiar', familiar, 'Familiar', 'Unfamiliar'));
+timeline.push(...createBlock('trustworthy', trustworthy, 'Trustworthy', 'Non-reliable'));
 
-// Block 6: Congruent 2 (repeat with shuffle)
-jsPsych.randomization.shuffle([
-  ...familiar.map(word => ({ word, isPositive: true })),
-  ...trustworthy.map(word => ({ word, isPositive: true })),
-  ...unfamiliar.map(word => ({ word, isPositive: false })),
-  ...non_reliable.map(word => ({ word, isPositive: false }))
-])
-.slice(0, 5)
-.forEach(item => {
-  timeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', 'congruent2'));
-});
+// Blocks 3 & 4 (opposite categories)
+timeline.push(...createBlock('unfamiliar', unfamiliar, 'Familiar', 'Unfamiliar'));
+timeline.push(...createBlock('non-reliable', non_reliable, 'Trustworthy', 'Non-reliable'));
 
-// Submission Block
+// Blocks 5 & 6: Congruent blocks with mixed categories & random subset
+function createCongruentBlock(name) {
+  const items = jsPsych.randomization.shuffle([
+    ...familiar.map(word => ({ word, isPositive: true })),
+    ...trustworthy.map(word => ({ word, isPositive: true })),
+    ...unfamiliar.map(word => ({ word, isPositive: false })),
+    ...non_reliable.map(word => ({ word, isPositive: false }))
+  ]).slice(0, 5);
+
+  const blockTimeline = [];
+  blockTimeline.push({
+    type: 'html-button-response',
+    stimulus: `<h3>Block: ${name}</h3><p>Press Start to begin this block.</p>`,
+    choices: ['Start']
+  });
+  items.forEach(item => blockTimeline.push(addTrial(item.word, 'Familiar/Trustworthy', 'Unfamiliar/Non-reliable', name)));
+  return blockTimeline;
+}
+
+timeline.push(...createCongruentBlock('congruent1'));
+timeline.push(...createCongruentBlock('congruent2'));
+
+// Submission & Thank You
 timeline.push({
   type: 'html-button-response',
   stimulus: 'Test complete. Tap below to submit your responses.',
@@ -166,14 +205,13 @@ timeline.push({
   on_finish: calculateDScore
 });
 
-// Thank You
 timeline.push({
   type: 'html-button-response',
   stimulus: '<h3>Thank You!</h3><p>We greatly appreciate your participation in this study.</p>',
   choices: ['Finish']
 });
 
-// D-Score calculation + Submission
+// D-Score calculation + submission function
 function calculateDScore() {
   const congruentRTs = userData.trials
     .filter(t => t.block === 'congruent1' || t.block === 'congruent2')
@@ -196,7 +234,7 @@ function calculateDScore() {
     userData
   };
 
-  // Replace this URL with your actual Google Apps Script deployed endpoint
+  // Replace with your actual Google Apps Script endpoint URL
   const endpoint = 'https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec';
 
   fetch(endpoint, {
@@ -204,25 +242,25 @@ function calculateDScore() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  .then(response => response.text())
-  .then(data => {
-    console.log('Server response:', data);
-    document.getElementById('results-display').innerHTML =
-      `<strong>D-Score:</strong> ${payload.dScore} <br>(Positive = Familiarity Bias)`;
+  .then(res => res.json())
+  .then(res => {
     document.getElementById('results-display').style.display = 'block';
+    document.getElementById('results-display').innerHTML = `<strong>Data submitted!</strong><br>D-score: ${payload.dScore}`;
   })
-  .catch(error => {
-    console.error('Error sending data:', error);
-    document.getElementById('results-display').innerHTML =
-      'Error submitting your data. Please try again later.';
+  .catch(err => {
     document.getElementById('results-display').style.display = 'block';
+    document.getElementById('results-display').innerHTML = `<strong>Submission failed:</strong> ${err}`;
   });
 }
 
-// Initialize the experiment
 jsPsych.init({
+  display_element: document.getElementById('jspsych-target'),
   timeline: timeline,
-  display_element: 'jspsych-target'
+  on_finish: function() {
+    console.log('Experiment complete!', userData);
+  }
 });
 </script>
+
+</body>
 </html>
