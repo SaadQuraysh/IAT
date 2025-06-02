@@ -57,7 +57,7 @@ timeline.push({
   html: `
     <p>Gender: <select name="gender" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></p>
     <p>Age Group: <select name="age" required><option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option></select></p>
-     <p>Occupation: <select name="occupation" required><option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
+    <p>Occupation: <select name="occupation" required><option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option></select></p>
     <p>Education: <select name="education" required><option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option></select></p>
   `,
   on_finish: data => {
@@ -66,7 +66,6 @@ timeline.push({
 });
 
 // Trial builder
-  timeline.push({
 function addTrial(word, left, right, block, correctLeft) {
   return {
     type: 'html-button-response',
