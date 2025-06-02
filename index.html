@@ -281,30 +281,17 @@
       }
     };
     
-    console.log('Sending payload to server:', payload);
-    
-    fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
+fetch('https://script.google.com/macros/s/AKfycbxnL2OXAQDqxlEPFZ6z4Y1--K7juLBbWwZIfHYqaDGUlLLcGbFsj0r2P_YT3LhWQUbn/exec', {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    })
-    .then(response => {
-      console.log('Fetch response status:', response.status, response.statusText);
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status} (${response.statusText})`);
-      }
-      return response.text();
-    })
-    .then(text => {
-      console.log('Server response text:', text || 'No response text received');
-      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nData sent successfully: ${text || 'No response from server'}`);
-    })
-    .catch(error => {
-      console.error('Error sending data:', error.message);
-      alert(`D-Score: ${d.toFixed(3)}\n(Positive = familiarity/trustworthiness bias)\nFailed to send data: ${error.message}\nCheck browser console for details.`);
     });
+
+    alert(D-Score: ${d.toFixed(3)}\n(Positive = familiarity bias));
   }
 
   jsPsych.init({ timeline });
 </script>
 </html>
+ 
