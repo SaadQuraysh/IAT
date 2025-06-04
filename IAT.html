@@ -2,447 +2,137 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>IAT Test</title>
-  <!-- Load jsPsych and plugins with fallback to local copies -->
-  <script src="https://unpkg.com/jspsych@7.3.0"></script>
-  <script>window.jsPsych = window.jsPsych || {};</script>
-  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.0"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.0"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.2"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-call-function@1.1.0"></script>
-  <link href="https://unpkg.com/jspsych@7.3.0/css/jspsych.css" rel="stylesheet" />
+  <title>IAT Brand Preference</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-categorize-html.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2em;
-      background: #f9f9f9;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .jspsych-content {
-      max-width: 800px;
-      font-size: 18px;
-      text-align: center;
-    }
-    .error-message {
-      color: red;
-      font-size: 1.5em;
-      margin-top: 10px;
-    }
+    body { font-family: Arial, sans-serif; }
+    .jspsych-content { max-width: 800px; margin: auto; }
   </style>
 </head>
 <body>
-  <div id="jspsych-target"></div>
-  <script>
-    // Ensure jsPsych is loaded
-    if (!window.jsPsych) {
-      console.error('jsPsych failed to load. Please check CDN or use local copy.');
-      document.getElementById('jspsych-target').innerHTML = '<p>Error: Unable to load jsPsych. Please try again later.</p>';
+<script>
+  const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
+  const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
+  const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
+  const nonReliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
+
+  const jsPsych = initJsPsych({
+    on_finish: function() {
+      jsPsych.data.displayData();
     }
+  });
 
-    // Define categories
-    const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
-    const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
-    const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
-    const nonReliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
+  let participantData = {};
 
-    // Define stimuli
-    const allBrands = [
-      ...familiar.map(word => ({word, type: 'brand', category: 'familiar'})),
-      ...unfamiliar.map(word => ({word, type: 'brand', category: 'unfamiliar'}))
-    ];
-    const allAttributes = [
-      ...trustworthy.map(word => ({word, type: 'attribute', category: 'trustworthy'})),
-      ...nonReliable.map(word => ({word, type: 'attribute', category: 'nonreliable'}))
-    ];
-    const allStimuli = [...allBrands, ...allAttributes];
+  const welcome = {
+    type: 'html-button-response',
+    stimulus: `
+      <h2>Welcome to the IAT</h2>
+      <p>This test takes about 5–7 minutes and helps us study unconscious brand associations.</p>
+      <p><strong>Categories:</strong></p>
+      <p><strong>Familiar:</strong> Nike, Coca-Cola, Apple, Adidas, Pepsi<br>
+         <strong>Unfamiliar:</strong> Zyxel, Qdoba, Vuzix, Yuneec, Kudelski<br>
+         <strong>Trustworthy:</strong> Reliable, Quality, Trustworthy, Dependable, Reputable<br>
+         <strong>Non-reliable:</strong> Unreliable, Cheap, Risky, Faulty, Unstable</p>
+      <p>Try to categorize items as quickly and accurately as possible.</p>
+    `,
+    choices: ['Start']
+  };
 
-    // Store participant data
-    const userData = {
-      id: jsPsych?.randomization?.randomID(8) || 'ID' + Math.random().toString(36).substr(2, 8),
-      demographics: {},
-      trials: [],
-      dScore: null
-    };
-
-    // Define counterbalance
-    const counterbalance = Math.random() < 0.5 ? 'A' : 'B';
-    const pairingA = {
-      left: ['familiar', 'trustworthy'],
-      right: ['unfamiliar', 'nonreliable']
-    };
-    const pairingB = {
-      left: ['unfamiliar', 'trustworthy'],
-      right: ['familiar', 'nonreliable']
-    };
-    const firstPairing = counterbalance === 'A' ? pairingA : pairingB;
-    const secondPairing = counterbalance === 'A' ? pairingB : pairingA;
-
-    // Define block configurations
-    const blockConfigs = [
-      {
-        label: 'block1',
-        leftCategories: ['familiar'],
-        rightCategories: ['unfamiliar'],
-        stimuliToUse: allBrands,
-        repetitions: 2,
-        instruction: 'Classify brands into Familiar (E) or Unfamiliar (I). Press space to begin.'
-      },
-      {
-        label: 'block2',
-        leftCategories: ['trustworthy'],
-        rightCategories: ['nonreliable'],
-        stimuliToUse: allAttributes,
-        repetitions: 2,
-        instruction: 'Classify words into Trustworthy (E) or Non-reliable (I). Press space to begin.'
-      },
-      {
-        label: 'block3',
-        leftCategories: firstPairing.left,
-        rightCategories: firstPairing.right,
-        stimuliToUse: allStimuli,
-        repetitions: 1,
-        instruction: `Classify items into ${firstPairing.left.join(' or ')} (E) or ${firstPairing.right.join(' or ')} (I). Press space to begin.`
-      },
-      {
-        label: 'block4',
-        leftCategories: firstPairing.left,
-        rightCategories: firstPairing.right,
-        stimuliToUse: allStimuli,
-        repetitions: 2,
-        instruction: `Classify items into ${firstPairing.left.join(' or ')} (E) or ${firstPairing.right.join(' or ')} (I). Press space to begin.`
-      },
-      {
-        label: 'block5',
-        leftCategories: ['unfamiliar'],
-        rightCategories: ['familiar'],
-        stimuliToUse: allBrands,
-        repetitions: 4,
-        instruction: 'Classify brands into Unfamiliar (E) or Familiar (I). Press space to begin.'
-      },
-      {
-        label: 'block6',
-        leftCategories: secondPairing.left,
-        rightCategories: secondPairing.right,
-        stimuliToUse: allStimuli,
-        repetitions: 1,
-        instruction: `Classify items into ${secondPairing.left.join(' or ')} (E) or ${secondPairing.right.join(' or ')} (I). Press space to begin.`
-      },
-      {
-        label: 'block7',
-        leftCategories: secondPairing.left,
-        rightCategories: secondPairing.right,
-        stimuliToUse: allStimuli,
-        repetitions: 2,
-        instruction: `Classify items into ${secondPairing.left.join(' or ')} (E) or ${secondPairing.right.join(' or ')} (I). Press space to begin.`
-      }
-    ];
-
-    // Initialize timeline
-    const timeline = [];
-
-    // Welcome page
-    const welcome = {
-      type: 'html-button-response',
-      stimulus: `
-        <h1>Welcome to the IAT</h1>
-        <p>This test takes about 5–7 minutes and helps us study unconscious brand associations.</p>
-        <p><strong>Categories:</strong></p>
-        <ul>
-          <li>Familiar: ${familiar.join(', ')}</li>
-          <li>Unfamiliar: ${unfamiliar.join(', ')}</li>
-          <li>Trustworthy: ${trustworthy.join(', ')}</li>
-          <li>Non-reliable: ${nonReliable.join(', ')}</li>
-        </ul>
-        <p>Try to categorize items as quickly and accurately as possible.</p>
-      `,
-      choices: ['Start'],
-      data: { task: 'welcome' }
-    };
-
-    // Demographics form
-    const demographics = {
-      type: 'survey-html-form',
-      preamble: '<h2>Demographic Information</h2>',
-      html: `
-        <label>Gender:
-          <select name="gender" required>
-            <option value="">Select</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </label><br>
-        <label>Age:
-          <select name="age" required>
-            <option value="">Select</option>
-            <option value="18-24">18-24</option>
-            <option value="25-34">25-34</option>
-            <option value="35-44">35-44</option>
-            <option value="45-54">45-54</option>
-            <option value="55-64">55-64</option>
-            <option value="65+">65+</option>
-          </select>
-        </label><br>
-        <label>Occupation:
-          <select name="occupation" required>
-            <option value="">Select</option>
-            <option value="Student">Student</option>
-            <option value="Employed">Employed</option>
-            <option value="Self-employed">Self-employed</option>
-            <option value="Unemployed">Unemployed</option>
-            <option value="Retired">Retired</option>
-            <option value="Other">Other</option>
-          </select>
-        </label><br>
-        <label>Education:
-          <select name="education" required>
-            <option value="">Select</option>
-            <option value="High School or less">High School or less</option>
-            <option value="Some College">Some College</option>
-            <option value="Bachelor's degree">Bachelor's degree</option>
-            <option value="Master's degree">Master's degree</option>
-            <option value="Doctorate">Doctorate</option>
-          </select>
-        </label><br>
-        <label>Ethnicity:
-          <select name="ethnicity" required>
-            <option value="">Select</option>
-            <option value="White">White</option>
-            <option value="Black or African American">Black or African American</option>
-            <option value="Hispanic or Latino">Hispanic or Latino</option>
-            <option value="Asian">Asian</option>
-            <option value="Native American or Alaska Native">Native American or Alaska Native</option>
-            <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
-            <option value="Other">Other</option>
-          </select>
-        </label><br>
-      `,
-      data: { task: 'demographics' },
-      on_finish: function(data) {
-        try {
-          userData.demographics = data.response || {};
-          console.log('Demographics:', userData.demographics);
-        } catch (e) {
-          console.error('Error processing demographics:', e);
-          userData.demographics = {};
-        }
-      }
-    };
-
-    // Error message for incorrect responses
-    function errorMessage() {
-      return `<div class="error-message">Incorrect! Please try again.</div>`;
+  const demographics = {
+    type: 'survey-html-form',
+    html: `
+      <label>Gender:<br><select name="gender" required>
+        <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+      </select></label><br><br>
+      <label>Age:<br><input type="number" name="age" min="10" max="99" required></label><br><br>
+      <label>Occupation:<br><input type="text" name="occupation" required></label><br><br>
+      <label>Education:<br><select name="education" required>
+        <option value="">Select</option><option>High School</option><option>Undergraduate</option>
+        <option>Graduate</option><option>Postgraduate</option>
+      </select></label><br><br>
+      <label>Ethnicity:<br><select name="ethnicity" required>
+        <option value="">Select</option>
+        <option>Asian</option><option>Black or African American</option>
+        <option>Hispanic or Latino</option><option>White</option>
+        <option>Other</option>
+      </select></label><br><br>
+      <input type="submit" value="Continue">
+    `,
+    on_finish: function(data) {
+      participantData = JSON.parse(data.responses);
     }
+  };
 
-    // Build IAT blocks
-    try {
-      for (let blockConfig of blockConfigs) {
-        // Instruction trial
-        timeline.push({
-          type: 'html-keyboard-response',
-          stimulus: blockConfig.instruction,
-          choices: ['space'],
-          data: { task: 'instruction', block: blockConfig.label }
-        });
-
-        // Generate trials
-        let trialStimuli = jsPsych?.randomization?.repeat(blockConfig.stimuliToUse, blockConfig.repetitions) || blockConfig.stimuliToUse;
-        trialStimuli = jsPsych?.randomization?.shuffle(trialStimuli) || trialStimuli;
-
-        for (let stim of trialStimuli) {
-          timeline.push({
-            type: 'html-keyboard-response',
-            stimulus: function() {
-              const leftLabel = blockConfig.leftCategories.join(' or ');
-              const rightLabel = blockConfig.rightCategories.join(' or ');
-              return `<div style="font-size: 24px;">${leftLabel} (E) | ${rightLabel} (I)</div><div style="font-size: 36px; margin-top: 20px;">${stim.word}</div>`;
-            },
-            choices: ['e', 'i'],
-            data: {
-              task: 'iat',
-              block: blockConfig.label,
-              word: stim.word,
-              type: stim.type,
-              category: stim.category,
-              correct_response: blockConfig.leftCategories.includes(stim.category) ? 'e' : 'i'
-            },
-            trial_duration: 2000,
-            response_ends_trial: true,
-            post_trial_gap: 500,
-            on_finish: function(data) {
-              try {
-                const correct = data.key_press === data.correct_response ? 1 : 0;
-                userData.trials.push({
-                  block: data.block,
-                  word: data.word,
-                  rt: data.rt || null,
-                  correct: correct,
-                  timestamp: new Date().toISOString()
-                });
-                if (!correct) {
-                  const target = document.querySelector('#jspsych-target');
-                  target.insertAdjacentHTML('beforeend', errorMessage());
-                  setTimeout(() => {
-                    document.querySelector('.error-message')?.remove();
-                    jsPsych.currentTimelineNodeIndex -= 1;
-                  }, 700);
-                }
-              } catch (e) {
-                console.error('Error in trial on_finish:', e);
-              }
-            }
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Error building IAT blocks:', e);
-    }
-
-    // Compute D-score
-    const computeDScore = {
-      type: 'call-function',
-      func: function() {
-        try {
-          const compatibleBlocks = counterbalance === 'A' ? ['block3', 'block4'] : ['block6', 'block7'];
-          const incompatibleBlocks = counterbalance === 'A' ? ['block6', 'block7'] : ['block3', 'block4'];
-          const compatibleRTs = userData.trials
-            .filter(t => compatibleBlocks.includes(t.block) && t.correct === 1 && t.rt >= 400 && t.rt <= 10000)
-            .map(t => t.rt);
-          const incompatibleRTs = userData.trials
-            .filter(t => incompatibleBlocks.includes(t.block) && t.correct === 1 && t.rt >= 400 && t.rt <= 10000)
-            .map(t => t.rt);
-          if (compatibleRTs.length === 0 || incompatibleRTs.length === 0) {
-            userData.dScore = 'N/A';
-            console.log('D-score set to N/A due to insufficient valid RTs');
-            return;
-          }
-          const meanCompatible = compatibleRTs.reduce((a, b) => a + b, 0) / compatibleRTs.length;
-          const meanIncompatible = incompatibleRTs.reduce((a, b) => a + b, 0) / incompatibleRTs.length;
-          const allRTs = [...compatibleRTs, ...incompatibleRTs];
-          const meanAll = allRTs.reduce((a, b) => a + b, 0) / allRTs.length;
-          const varianceAll = allRTs.length > 1 ? allRTs.reduce((sum, rt) => sum + Math.pow(rt - meanAll, 2), 0) / (allRTs.length - 1) : 1;
-          const sdAll = Math.sqrt(varianceAll) || 1;
-          userData.dScore = ((meanIncompatible - meanCompatible) / sdAll).toFixed(3);
-          console.log('D-score:', userData.dScore);
-        } catch (e) {
-          console.error('Error computing D-score:', e);
-          userData.dScore = 'N/A';
-        }
-      }
+  function createCategorizeTrial(word, correct_category, categories) {
+    return {
+      type: 'categorize-html',
+      stimulus: `<div style='font-size:40px;'>${word}</div>`,
+      key_answer: correct_category === categories[0] ? 'e' : 'i',
+      choices: ['e', 'i'],
+      prompt: `<p>Press 'E' for ${categories[0]}<br>Press 'I' for ${categories[1]}</p>`,
+      show_stim_with_feedback: true,
+      data: { stimulus: word, category: correct_category }
     };
+  }
 
-    // Submit data to Google Sheets
-    const submitData = {
-      type: 'call-function',
-      func: function() {
-        try {
-          const dataToSend = {
-            timestamp: new Date().toISOString(),
-            id: userData.id,
-            gender: userData.demographics.gender || 'N/A',
-            age: userData.demographics.age || 'N/A',
-            occupation: userData.demographics.occupation || 'N/A',
-            education: userData.demographics.education || 'N/A',
-            ethnicity: userData.demographics.ethnicity || 'N/A',
-            dScore: userData.dScore || 'N/A'
-          };
-          fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(dataToSend)
-          })
-          .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            console.log('Data sent successfully');
-            return response.text();
-          })
-          .catch(error => {
-            console.error('Error sending data:', error);
-          });
-        } catch (e) {
-          console.error('Error in submitData:', e);
-        }
-      }
-    };
+  function getIATBlock(cat1, cat2, label1, label2, words1, words2) {
+    const trials = [];
+    const allWords = [...words1.map(w => [w, cat1]), ...words2.map(w => [w, cat2])];
+    jsPsych.randomization.shuffle(allWords).forEach(([word, cat]) => {
+      trials.push(createCategorizeTrial(word, cat, [label1, label2]));
+    });
+    return trials;
+  }
 
-    // Thank-you page
-    const thankYou = {
-      type: 'html-keyboard-response',
-      stimulus: '<h1>Thank you for contributing to our research!</h1><p>Your responses have been recorded. You may now close this tab.</p>',
-      choices: 'NO_KEYS',
-      trial_duration: 5000,
-      data: { task: 'thankyou' }
-    };
+  const iat_blocks = [
+    ...getIATBlock('Familiar', 'Unfamiliar', 'Familiar', 'Unfamiliar', familiar, unfamiliar),
+    ...getIATBlock('Trustworthy', 'NonReliable', 'Trustworthy', 'NonReliable', trustworthy, nonReliable),
+    ...getIATBlock('Familiar+Trustworthy', 'Unfamiliar+NonReliable', 'Familiar+Trustworthy', 'Unfamiliar+NonReliable', familiar.concat(trustworthy), unfamiliar.concat(nonReliable)),
+    ...getIATBlock('Familiar+NonReliable', 'Unfamiliar+Trustworthy', 'Familiar+NonReliable', 'Unfamiliar+Trustworthy', familiar.concat(nonReliable), unfamiliar.concat(trustworthy)),
+  ];
 
-    // Build timeline
-    try {
-      timeline.push(welcome, demographics, ...blockConfigs.map(config => ({
-        type: 'html-keyboard-response',
-        stimulus: config.instruction,
-        choices: ['space'],
-        data: { task: 'instruction', block: config.label }
-      })).flat(), computeDScore, submitData, thankYou);
+  const thank_you = {
+    type: 'html-button-response',
+    stimulus: '<h3>Thank you for contributing to our research!</h3>',
+    choices: ['Finish']
+  };
 
-      // Add trials for each block
-      blockConfigs.forEach(config => {
-        let trialStimuli = jsPsych?.randomization?.repeat(config.stimuliToUse, config.repetitions) || config.stimuliToUse;
-        trialStimuli = jsPsych?.randomization?.shuffle(trialStimuli) || trialStimuli;
-        trialStimuli.forEach(stim => {
-          timeline.splice(timeline.findIndex(t => t.data?.block === config.label) + 1, 0, {
-            type: 'html-keyboard-response',
-            stimulus: `<div style="font-size: 24px;">${config.leftCategories.join(' or ')} (E) | ${config.rightCategories.join(' or ')} (I)</div><div style="font-size: 36px; margin-top: 20px;">${stim.word}</div>`,
-            choices: ['e', 'i'],
-            data: {
-              task: 'iat',
-              block: config.label,
-              word: stim.word,
-              type: stim.type,
-              category: stim.category,
-              correct_response: config.leftCategories.includes(stim.category) ? 'e' : 'i'
-            },
-            trial_duration: 2000,
-            response_ends_trial: true,
-            post_trial_gap: 500,
-            on_finish: function(data) {
-              try {
-                const correct = data.key_press === data.correct_response ? 1 : 0;
-                userData.trials.push({
-                  block: data.block,
-                  word: data.word,
-                  rt: data.rt || null,
-                  correct: correct,
-                  timestamp: new Date().toISOString()
-                });
-                if (!correct) {
-                  const target = document.querySelector('#jspsych-target');
-                  target.insertAdjacentHTML('beforeend', errorMessage());
-                  setTimeout(() => {
-                    document.querySelector('.error-message')?.remove();
-                    jsPsych.currentTimelineNodeIndex -= 1;
-                  }, 700);
-                }
-              } catch (e) {
-                console.error('Error in trial on_finish:', e);
-              }
-            }
-          });
-        });
+  const send_data = {
+    type: 'call-function',
+    func: function() {
+      const iatData = jsPsych.data.get().filter({trial_type: 'categorize-html'}).values();
+      const correctRTs = iatData.filter(d => d.correct === true).map(d => d.rt);
+      const dScore = (correctRTs.length > 0) ? (correctRTs.reduce((a, b) => a + b) / correctRTs.length) : 0;
+      const payload = {
+        timestamp: new Date().toISOString(),
+        gender: participantData.gender,
+        age: participantData.age,
+        occupation: participantData.occupation,
+        education: participantData.education,
+        ethnicity: participantData.ethnicity,
+        dScore: dScore
+      };
+      fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
       });
-    } catch (e) {
-      console.error('Error building timeline:', e);
-      document.getElementById('jspsych-target').innerHTML = '<p>Error: Failed to initialize experiment. Please check console for details.</p>';
     }
+  };
 
-    // Run experiment
-    try {
-      jsPsych.run(timeline);
-    } catch (e) {
-      console.error('Error running jsPsych:', e);
-      document.getElementById('jspsych-target').innerHTML = '<p>Error: Failed to start experiment. Please check console for details.</p>';
-    }
-  </script>
+  jsPsych.run([
+    welcome,
+    demographics,
+    ...iat_blocks,
+    send_data,
+    thank_you
+  ]);
+</script>
 </body>
 </html>
