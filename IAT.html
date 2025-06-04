@@ -4,27 +4,45 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Implicit Association Test (Mobile Friendly)</title>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/jspsych.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/plugins/jspsych-html-keyboard-response.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/plugins/jspsych-survey-html-form.js"></script>
+
+  <!-- jsPsych core -->
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0"></script>
+
+  <!-- Required plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/@jspsych/plugin-html-keyboard-response@1.1.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@jspsych/plugin-survey-html-form@1.1.1"></script>
+
+  <!-- jsPsych CSS -->
   <link href="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/css/jspsych.css" rel="stylesheet" />
+
+  <!-- Custom styles -->
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; }
-    .welcome-container { max-width: 600px; margin: auto; }
-    table { width: 100%; border-collapse: collapse; margin: 1em 0; }
-    th, td { border: 1px solid #aaa; padding: 8px; text-align: center; }
-    .error-message { color: red; font-weight: bold; margin-top: 1em; }
-    @media (max-width: 480px) {
-      body { font-size: 16px; }
-      table, th, td { font-size: 14px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+    #jspsych-target {
+      max-width: 800px;
+      margin: auto;
     }
   </style>
 </head>
 <body>
+  <div id="jspsych-target"></div>
 
-<div id="jspsych-target"></div>
+  <script>
+    // Initialize jsPsych
+    const jsPsych = initJsPsych({
+      display_element: 'jspsych-target',
+      on_finish: () => {
+        // Add your data processing/saving here
+        jsPsych.data.displayData(); // Example: show data on finish
+      }
+    });
 
-<script>
+    // Create the experiment timeline
+    const timeline = [];
+
 (async function() {
   const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
   const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
