@@ -78,36 +78,48 @@
 
   const errorMessage = () => `<div class="error-message">X = Incorrect, try again</div>`;
 
-  function createTrial(word, correct_side, block) {
-    return {
-      type: 'html-keyboard-response',
-      stimulus: `<div style="font-size: 2em; margin: 2em;">${word}</div>`,
-      choices: ['e', 'i'],
-      data: {stimulus: word, correct_side, block, stimType: 'both'},
-      on_start: trial => {
-        trial.stimulus = `<div style="font-size: 2.5em; margin: 3em auto; max-width: 90vw; text-align:center;">${word}</div>
+ function createTrial(word, correct_side, block) {
+  return {
+    timeline: [
+      {
+        type: 'html-keyboard-response',
+        stimulus: `<div style="font-size: 2.5em; margin: 3em auto; max-width: 90vw; text-align:center;">${word}</div>
           <div style="display:flex; justify-content: space-between; margin-top: 2em; font-size: 1em;">
             <div><strong>E</strong><br>Left</div>
             <div><strong>I</strong><br>Right</div>
-          </div>`;
+          </div>`,
+        choices: ['e', 'i'],
+        data: {stimulus: word, correct_side, block, stimType: 'both'},
+        on_finish: function(data) {
+          data.correct = (data.key === 'e' && correct_side === 'left') || (data.key === 'i' && correct_side === 'right');
+        }
       },
-      on_finish: data => {
-        const correct = (data.key === 'e' && data.correct_side === 'left') ||
-                        (data.key === 'i' && data.correct_side === 'right');
-        data.correct = correct;
-        if (!correct) {
-          jsPsych.pauseExperiment();
-          const target = document.querySelector('#jspsych-target');
-          target.insertAdjacentHTML('beforeend', errorMessage());
-          setTimeout(() => {
-            document.querySelector('.error-message')?.remove();
-            jsPsych.resumeExperiment();
-            jsPsych.currentTimelineVariableIndex -= 1;
-          }, 700);
+      {
+        timeline: [{
+          type: 'html-keyboard-response',
+          stimulus: `<div class="error-message" style="color:red; font-weight:bold; font-size:1.5em; text-align:center;">X = Incorrect, try again</div>`,
+          choices: jsPsych.NO_KEYS,
+          trial_duration: 700
+        }],
+        conditional_function: function() {
+          const lastData = jsPsych.data.get().last(1).values()[0];
+          return !lastData.correct;
+        }
+      },
+      {
+        timeline: [], // empty trial to repeat if incorrect
+        conditional_function: function() {
+          const lastData = jsPsych.data.get().last(2).values()[0];
+          return !lastData.correct;
         }
       }
-    };
-  }
+    ],
+    loop_function: function(data) {
+      return !data[0].correct; // repeat this timeline if incorrect
+    }
+  };
+}
+
 
   function makeBlock(c1, c2, a1, a2, label, leftAlign = true) {
     const left = leftAlign ? [...c1, ...a1] : [...c2, ...a2];
