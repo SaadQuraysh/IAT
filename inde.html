@@ -1,34 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Implicit Association Test</title>
-  <script type="module">
-    import jsPsych from "https://unpkg.com/jspsych@7.3.0/dist/jspsych.js";
-    import htmlKeyboardResponse from "https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.2.0/dist/plugin-html-keyboard-response.js";
-
-    const jsPsychInstance = initJsPsych({
-      on_finish: () => jsPsychInstance.data.displayData()
-    });
-
-    const timeline = [
-      {
-        type: htmlKeyboardResponse,
-        stimulus: "Welcome to the Implicit Association Test.<br><br>Press any key to begin."
-      },
-      {
-        type: htmlKeyboardResponse,
-        stimulus: "Amazon",
-        choices: "ALL_KEYS"
-      }
-    ];
-
-    jsPsychInstance.run(timeline);
-  </script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 2em; }
-    .jspsych-content { font-size: 24px; text-align: center; }
-  </style>
+<meta charset="UTF-8" />
+<title>IAT Brand Preference Simple</title>
+<script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
+<style>
+body { font-family: Arial, sans-serif; padding: 2em; background: #f9f9f9; display: flex; flex-direction: column; align-items: center; }
+.jspsych-content { max-width: 700px; font-size: 18px; }
+button { background: #007BFF; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+button:hover { background: #0056b3; }
+</style>
 </head>
-<body></body>
+<body>
+<div id="jspsych-target"></div>
+
+<script>
+// Brand and valence words
+const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
+const unfamiliar = ['Zyxel', 'Qdoba', 'Vuzix', 'Yuneec', 'Kudelski'];
+const trustworthy = ['Reliable', 'Quality', 'Trustworthy', 'Dependable', 'Reputable'];
+const non_reliable = ['Unreliable', 'Cheap', 'Risky', 'Faulty', 'Unstable'];
+
+// Data holders
+let demographicData = {};
+let trialData = [];
+
+// Generate a random participant ID
+const participantID = 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+// Timeline container
+const timeline = [];
+
+// Welcome screen
+timeline.push({
+type: 'html-button-response',
+stimulus: `
+<h3>Welcome to the IAT</h3>
+<p>This test takes about 5–7 minutes and helps us study unconscious brand associations.</p>
+<p>Categories:</p>
+<ul>
+<li><strong>Familiar:</strong> ${familiar.join(', ')}</li>
+<li><strong>Unfamiliar:</strong> ${unfamiliar.join(', ')}</li>
+<li><strong>Trustworthy:</strong> ${trustworthy.join(', ')}</li>
+<li><strong>Non-reliable:</strong> ${non_reliable.join(', ')}</li>
+</ul>
+<p>Try to categorize items as quickly and accurately as possible.</p>
+`,
+choices: ['Start']
+});
+
+// Demographics form
+timeline.push({
+type: 'survey-html-form',
+preamble: '<h3>Demographics</h3>',
+html: `
+<p>Gender: <select name="gender" required>
+<option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+</select></p>
+<p>Age: <select name="age" required>
+<option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option>
+</select></p>
+<p>Occupation: <select name="occupation" required>
+<option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
+</select></p>
+<p>Education: <select name="education" required>
+<option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option>
+</select></p>
+`,
+on_finish: function(data) {
+demographicData = JSON.parse(data.response);
+demographicData.participantID = participantID;
+}
+});
+
+// Helper to create a trial block
+function addTrial(word, isTargetE, block) {
+let choices;
+if (block === 'practice-familiar' || block === 'congruent') {
+choices = ['Familiar', 'Unfamiliar'];
+} else if (block === 'practice-valence') {
+choices = ['Trustworthy', 'Non-reliable'];
+} else {
+choices = ['Familiar', 'Unfamiliar'];
+}
+return {
+type: 'html-button-response',
+stimulus: `<p style="font-size: 32px;">${word}</p>`,
+choices: choices,
+data: { word: word, block: block, correct: isTargetE ? choices[0] : choices[1] },
+on_finish: function(data) {
+trialData.push({
+block: block,
+word: word,
+rt: data.rt,
+response: choices[data.response],
+correct: choices[data.response] === (isTargetE ? choices[0] : choices[1]) ? 1 : 0
+});
+}
+};
+}
+
+// Add practice blocks - familiar vs unfamiliar
+familiar.forEach(word => timeline.push(addTrial(word, true, 'practice-familiar')));
+unfamiliar.forEach(word => timeline.push(addTrial(word, false, 'practice-familiar')));
+
+// Add practice blocks - trustworthy vs non-reliable
+trustworthy.forEach(word => timeline.push(addTrial(word, true, 'practice-valence')));
+non_reliable.forEach(word => timeline.push(addTrial(word, false, 'practice-valence')));
+
+// Congruent block (mix)
+const congruent = [...familiar, ...trustworthy, ...unfamiliar, ...non_reliable];
+jsPsych.randomization.shuffle(congruent).forEach(word => {
+const isTargetE = familiar.includes(word) || trustworthy.includes(word);
+timeline.push(addTrial(word, isTargetE, 'congruent'));
+});
+
+// Submit block
+timeline.push({
+type: 'html-button-response',
+stimulus: '<p>Test complete. Tap below to submit your responses.</p>',
+choices: ['Submit'],
+on_finish: calculateDScore
+});
+
+// Calculate D-score (simplified)
+function calculateDScore() {
+const congruentRTs = trialData.filter(t => t.block === 'congruent').map(t => t.rt);
+if (congruentRTs.length < 6) {
+alert('Not enough data to calculate D-score.');
+return;
+}
+const mean = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
+const pooledSD = arr => {
+const m = mean(arr);
+return Math.sqrt(arr.map(x => (x - m) ** 2).reduce((a,b) => a + b) / (arr.length - 1));
+};
+// Using first 3 vs last 3 congruent trials RTs (simplified)
+const d = (mean(congruentRTs.slice(3)) - mean(congruentRTs.slice(0,3))) / pooledSD(congruentRTs);
+
+const payload = {
+participantID: participantID,
+dScore: d.toFixed(3),
+demographics: demographicData,
+trials: trialData
+};
+
+// Send to Google Apps Script endpoint
+fetch('https://script.google.com/macros/s/YOUR_SCRIPT_ID_HERE/exec', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify(payload)
+})
+.then(() => {
+jsPsych.endExperiment(`<h3>Thank you!</h3><p>Your D-Score is ${payload.dScore}</p>`);
+})
+.catch(err => {
+console.error(err);
+jsPsych.endExperiment('<h3>Error submitting data.</h3><p>Please try again later.</p>');
+});
+}
+
+// Kick it off
+jsPsych.init({
+timeline: timeline,
+display_element: 'jspsych-target',
+});
+</script>
+</body>
 </html>
