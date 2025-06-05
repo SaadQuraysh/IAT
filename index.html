@@ -70,22 +70,54 @@
   const negative = ['Cheap', 'Fake', 'Boring', 'Unreliable', 'Outdated'];
 
   // Function to generate trials
-  function createTrials(categoryA, categoryB, labelA, labelB) {
-    let items = [...categoryA.map(word => ({stimulus: word, correct: labelA})),
-                 ...categoryB.map(word => ({stimulus: word, correct: labelB}))];
-    jsPsych.randomization.shuffle(items);
-    return items.map(item => ({
-      type: 'categorize-html',
-      stimulus: `<div style="font-size:40px;">${item.stimulus}</div>`,
-      key_answer: item.correct,
-      choices: ['left', 'right'],
-      prompt: "<p>Tap LEFT or RIGHT to categorize</p>",
-      show_stim_with_feedback: true,
-      incorrect_text: "<span style='color:red;'>X = Incorrect, try again.</span>"
-    }));
-  }
+  function createTouchCategorizationTrials(categoryA, categoryB, labelA, labelB) {
+  const trials = [];
+  const allItems = jsPsych.randomization.shuffle([
+    ...categoryA.map(word => ({ word, correct: labelA })),
+    ...categoryB.map(word => ({ word, correct: labelB }))
+  ]);
 
+  allItems.forEach((item, i) => {
+    trials.push({
+      type: 'html-button-response',
+      stimulus: `
+        <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
+        <div style="display: flex; justify-content: space-between;">
+          <button class="jspsych-btn" style="width: 45%;" data-response="left">${labelA}</button>
+          <button class="jspsych-btn" style="width: 45%;" data-response="right">${labelB}</button>
+        </div>
+        <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
+      `,
+      choices: [], // Disable jsPsych buttons
+      on_load: () => {
+        const buttons = document.querySelectorAll('.jspsych-btn');
+        buttons.forEach(btn => {
+          btn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // prevent ghost clicks
+            const userResponse = e.target.getAttribute('data-response');
+            const correct = userResponse === item.correct;
+            document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
+
+            setTimeout(() => {
+              jsPsych.finishTrial({
+                stimulus: item.word,
+                response: userResponse,
+                correct: correct,
+                rt: performance.now(), // approximate
+                block: determineBlock(i) // optional block logic
+              });
+            }, correct ? 0 : 600); // 600ms error delay if wrong
+          });
+        });
+      }
+    });
+  });
+
+  return trials;
+}
   // Add trial blocks (mock example – you’ll expand to full 7 later)
+  const block1 = createTouchCategorizationTrials(familiar, unfamiliar, 'left', 'right');
+timeline.push(...block1)
   const block1 = createTrials(familiar, unfamiliar, 'left', 'right');
   const block2 = createTrials(positive, negative, 'left', 'right');
   timeline.push(...block1);
