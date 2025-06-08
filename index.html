@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-categorize-html.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-instructions.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
   <style>
     body { font-size: 20px; touch-action: manipulation; }
@@ -17,129 +17,140 @@
   </style>
 </head>
 <body></body>
-
 <script>
-  const timeline = [];
+const timeline = [];
 
-  // Welcome screen
-  timeline.push({
-    type: 'html-button-response',
-    stimulus: `
-      <h2>Welcome to the Implicit Association Test (IAT)</h2>
-      <p>This IAT assesses unconscious preferences toward brands.</p>
-      <p>It measures how quickly you associate well-known and lesser-known brands with positive or negative attributes.</p>
-      <p><strong>Categories Used:</strong></p>
-      <table>
-        <tr><th>Familiar</th><th>Unfamiliar</th><th>Positive</th><th>Negative</th></tr>
-        <tr>
-          <td>Nike, Coca-Cola, Apple, Adidas, Pepsi</td>
-          <td>Zebronics, Action Shoes, Xolo, Lava, Fogg</td>
-          <td>Trustworthy, Reliable, Quality, Innovative, Premium</td>
-          <td>Cheap, Fake, Boring, Unreliable, Outdated</td>
-        </tr>
-      </table>
-      <p>The test takes around 5–7 minutes. Tap “Next” to begin.</p>
-    `,
-    choices: ['Next']
-  });
+const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
+const unfamiliar = ['Zebronics', 'Action Shoes', 'Xolo', 'Lava', 'Fogg'];
+const positive = ['Trustworthy', 'Reliable', 'Quality', 'Innovative', 'Premium'];
+const negative = ['Cheap', 'Fake', 'Boring', 'Unreliable', 'Outdated'];
 
-  // Demographics form
-  timeline.push({
-    type: 'survey-html-form',
-    preamble: '<h3>Please fill in your demographic details:</h3>',
-    html: `
-      <p>Age: <input name="age" type="number" required></p>
-      <p>Gender: 
-        <select name="gender" required>
-          <option value="" disabled selected>Select</option>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
-      </p>
-      <p>Ethnicity: <input name="ethnicity" type="text" required></p>
-      <p>Occupation: <input name="occupation" type="text" required></p>
-      <p>Education Level: <input name="education" type="text" required></p>
-    `
-  });
+// Welcome screen
+timeline.push({
+  type: 'html-button-response',
+  stimulus: `
+    <h2>Welcome to the Implicit Association Test (IAT)</h2>
+    <p>This IAT assesses unconscious preferences toward brands.</p>
+    <p>It measures how quickly you associate well-known and lesser-known brands with positive or negative attributes.</p>
+    <p><strong>Categories Used:</strong></p>
+    <table>
+      <tr><th>Familiar</th><th>Unfamiliar</th><th>Positive</th><th>Negative</th></tr>
+      <tr>
+        <td>Nike, Coca-Cola, Apple, Adidas, Pepsi</td>
+        <td>Zebronics, Action Shoes, Xolo, Lava, Fogg</td>
+        <td>Trustworthy, Reliable, Quality, Innovative, Premium</td>
+        <td>Cheap, Fake, Boring, Unreliable, Outdated</td>
+      </tr>
+    </table>
+    <p>The test takes around 5–7 minutes. Tap “Next” to begin.</p>
+  `,
+  choices: ['Next']
+});
 
-  // Define categories
-  const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
-  const unfamiliar = ['Zebronics', 'Action Shoes', 'Xolo', 'Lava', 'Fogg'];
-  const positive = ['Trustworthy', 'Reliable', 'Quality', 'Innovative', 'Premium'];
-  const negative = ['Cheap', 'Fake', 'Boring', 'Unreliable', 'Outdated'];
+// Demographics
+timeline.push({
+  type: 'survey-html-form',
+  preamble: '<h3>Please fill in your demographic details:</h3>',
+  html: `
+    <p>Age: <input name="age" type="number" required></p>
+    <p>Gender: 
+      <select name="gender" required>
+        <option value="" disabled selected>Select</option>
+        <option>Male</option>
+        <option>Female</option>
+        <option>Other</option>
+      </select>
+    </p>
+    <p>Ethnicity: <input name="ethnicity" type="text" required></p>
+    <p>Occupation: <input name="occupation" type="text" required></p>
+    <p>Education Level: <input name="education" type="text" required></p>
+  `
+});
 
-  // Helper to create trials with touch input
-  function createTouchCategorizationTrials(categoryA, categoryB, labelA, labelB, blockNumber) {
-    const trials = [];
-    const items = jsPsych.randomization.shuffle([
-      ...categoryA.map(word => ({ word, correct: labelA })),
-      ...categoryB.map(word => ({ word, correct: labelB }))
-    ]);
+function createBlock(words1, words2, label1, label2, blockId) {
+  const trials = [];
+  const allWords = jsPsych.randomization.shuffle([
+    ...words1.map(w => ({ word: w, correct: 'left' })),
+    ...words2.map(w => ({ word: w, correct: 'right' }))
+  ]);
 
-    items.forEach(item => {
-      trials.push({
-        type: 'html-button-response',
-        stimulus: `
-          <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
-          <div style="display: flex; justify-content: space-between;">
-            <button class="jspsych-btn" style="width: 45%;" data-response="${labelA}">${labelA}</button>
-            <button class="jspsych-btn" style="width: 45%;" data-response="${labelB}">${labelB}</button>
-          </div>
-          <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
-        `,
-        choices: [],
-        on_load: () => {
-          const buttons = document.querySelectorAll('.jspsych-btn');
-          buttons.forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-              e.preventDefault();
-              const userResponse = e.target.getAttribute('data-response');
-              const correct = userResponse === item.correct;
-              document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
-
-              setTimeout(() => {
-                jsPsych.finishTrial({
-                  stimulus: item.word,
-                  response: userResponse,
-                  correct: correct,
-                  rt: performance.now(),
-                  block: blockNumber
-                });
-              }, correct ? 0 : 600);
-            });
+  allWords.forEach(item => {
+    trials.push({
+      type: 'html-button-response',
+      stimulus: `
+        <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
+        <div style="display: flex; justify-content: space-between;">
+          <button class="jspsych-btn" style="width: 45%;" data-response="left">${label1}</button>
+          <button class="jspsych-btn" style="width: 45%;" data-response="right">${label2}</button>
+        </div>
+        <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
+      `,
+      choices: [],
+      data: { correct_response: item.correct, stimulus: item.word, block: blockId },
+      on_load: () => {
+        const buttons = document.querySelectorAll('.jspsych-btn');
+        buttons.forEach(btn => {
+          btn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const userResponse = btn.getAttribute('data-response');
+            const correct = userResponse === item.correct;
+            document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
+            setTimeout(() => jsPsych.finishTrial({
+              rt: performance.now(),
+              response: userResponse,
+              correct,
+              stimulus: item.word,
+              block: blockId
+            }), correct ? 0 : 600);
           });
-        }
-      });
+        });
+      }
     });
-    return trials;
-  }
-
-  // Add 2 trial blocks for now (expand later)
-  const block1 = createTouchCategorizationTrials(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 1);
-  const block2 = createTouchCategorizationTrials(positive, negative, 'Positive', 'Negative', 2);
-  timeline.push(...block1);
-  timeline.push(...block2);
-
-  // Final screen + Data Save
-  timeline.push({
-    type: 'html-button-response',
-    stimulus: '<p>Test complete. Submitting your data...</p>',
-    choices: [],
-    trial_duration: 1000,
-    on_finish: function() {
-      const data = jsPsych.data.get().values();
-      const demo = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).values()[0].response;
-      const fakeDSCO = (Math.random() * 2 - 1).toFixed(2);
-
-      fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({demographics: demo, dsco: fakeDSCO, trials: data})
-      }).then(() => console.log('Data sent'));
-    }
   });
 
-  jsPsych.init({timeline});
+  return trials;
+}
+
+// Define all 7 blocks
+const blocks = [
+  createBlock(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 1),
+  createBlock(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 2),
+  createBlock([...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative', 3),
+  createBlock([...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative', 4),
+  createBlock(familiar, unfamiliar, 'Unfamiliar', 'Familiar', 5), // reversed
+  createBlock([...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive', 6),
+  createBlock([...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive', 7)
+];
+
+blocks.forEach(b => timeline.push(...b));
+
+// Final screen + D-score and submission
+timeline.push({
+  type: 'html-button-response',
+  stimulus: '<p>Submitting your data...</p>',
+  choices: [],
+  trial_duration: 1000,
+  on_finish: function() {
+    const allData = jsPsych.data.get().values();
+    const demo = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).values()[0].response;
+    const rt = block => jsPsych.data.get().filter({ block }).filter({ correct: true }).select('rt').values;
+    const comp = [...rt(3), ...rt(4)], incomp = [...rt(6), ...rt(7)];
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const sd = arr => {
+      const m = mean(arr);
+      return Math.sqrt(arr.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (arr.length - 1));
+    };
+    const pooled = [...comp, ...incomp];
+    const dscore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
+
+    fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ demographics: demo, dscore, trials: allData })
+    });
+  }
+});
+
+jsPsych.init({ timeline });
 </script>
 </html>
