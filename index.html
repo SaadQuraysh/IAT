@@ -63,69 +63,63 @@
     `
   });
 
-  // Define the categories
+  // Define categories
   const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
   const unfamiliar = ['Zebronics', 'Action Shoes', 'Xolo', 'Lava', 'Fogg'];
   const positive = ['Trustworthy', 'Reliable', 'Quality', 'Innovative', 'Premium'];
   const negative = ['Cheap', 'Fake', 'Boring', 'Unreliable', 'Outdated'];
 
-  // Function to generate trials
-  function createTouchCategorizationTrials(categoryA, categoryB, labelA, labelB) {
-  const trials = [];
-  const allItems = jsPsych.randomization.shuffle([
-    ...categoryA.map(word => ({ word, correct: labelA })),
-    ...categoryB.map(word => ({ word, correct: labelB }))
-  ]);
+  // Helper to create trials with touch input
+  function createTouchCategorizationTrials(categoryA, categoryB, labelA, labelB, blockNumber) {
+    const trials = [];
+    const items = jsPsych.randomization.shuffle([
+      ...categoryA.map(word => ({ word, correct: labelA })),
+      ...categoryB.map(word => ({ word, correct: labelB }))
+    ]);
 
-  allItems.forEach((item, i) => {
-    trials.push({
-      type: 'html-button-response',
-      stimulus: `
-        <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
-        <div style="display: flex; justify-content: space-between;">
-          <button class="jspsych-btn" style="width: 45%;" data-response="left">${labelA}</button>
-          <button class="jspsych-btn" style="width: 45%;" data-response="right">${labelB}</button>
-        </div>
-        <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
-      `,
-      choices: [], // Disable jsPsych buttons
-      on_load: () => {
-        const buttons = document.querySelectorAll('.jspsych-btn');
-        buttons.forEach(btn => {
-          btn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // prevent ghost clicks
-            const userResponse = e.target.getAttribute('data-response');
-            const correct = userResponse === item.correct;
-            document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
+    items.forEach(item => {
+      trials.push({
+        type: 'html-button-response',
+        stimulus: `
+          <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
+          <div style="display: flex; justify-content: space-between;">
+            <button class="jspsych-btn" style="width: 45%;" data-response="${labelA}">${labelA}</button>
+            <button class="jspsych-btn" style="width: 45%;" data-response="${labelB}">${labelB}</button>
+          </div>
+          <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
+        `,
+        choices: [],
+        on_load: () => {
+          const buttons = document.querySelectorAll('.jspsych-btn');
+          buttons.forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+              e.preventDefault();
+              const userResponse = e.target.getAttribute('data-response');
+              const correct = userResponse === item.correct;
+              document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
 
-            setTimeout(() => {
-              jsPsych.finishTrial({
-                stimulus: item.word,
-                response: userResponse,
-                correct: correct,
-                rt: performance.now(), // approximate
-                block: determineBlock(i) // optional block logic
-              });
-            }, correct ? 0 : 600); // 600ms error delay if wrong
+              setTimeout(() => {
+                jsPsych.finishTrial({
+                  stimulus: item.word,
+                  response: userResponse,
+                  correct: correct,
+                  rt: performance.now(),
+                  block: blockNumber
+                });
+              }, correct ? 0 : 600);
+            });
           });
-        });
-      }
+        }
+      });
     });
-  });
+    return trials;
+  }
 
-  return trials;
-}
-  // Add trial blocks (mock example – you’ll expand to full 7 later)
-  const block1 = createTouchCategorizationTrials(familiar, unfamiliar, 'left', 'right');
-timeline.push(...block1)
-  const block1 = createTrials(familiar, unfamiliar, 'left', 'right');
-  const block2 = createTrials(positive, negative, 'left', 'right');
+  // Add 2 trial blocks for now (expand later)
+  const block1 = createTouchCategorizationTrials(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 1);
+  const block2 = createTouchCategorizationTrials(positive, negative, 'Positive', 'Negative', 2);
   timeline.push(...block1);
   timeline.push(...block2);
-  // [Add all 7 blocks accordingly with reversal as per IAT structure]
-
-  // Calculate fake DSCO (replace with real logic later)
-  const calculateDSCO = () => (Math.random() * 2 - 1).toFixed(2);
 
   // Final screen + Data Save
   timeline.push({
@@ -135,14 +129,14 @@ timeline.push(...block1)
     trial_duration: 1000,
     on_finish: function() {
       const data = jsPsych.data.get().values();
-      const dsco = calculateDSCO();
       const demo = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).values()[0].response;
+      const fakeDSCO = (Math.random() * 2 - 1).toFixed(2);
 
       fetch('YOUR_GOOGLE_SCRIPT_URL', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({demographics: demo, dsco, trials: data})
-      }).then(() => console.log('Data sent to Google Sheets'));
+        body: JSON.stringify({demographics: demo, dsco: fakeDSCO, trials: data})
+      }).then(() => console.log('Data sent'));
     }
   });
 
