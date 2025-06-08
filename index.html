@@ -132,7 +132,7 @@
       const demo = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).values()[0].response;
       const fakeDSCO = (Math.random() * 2 - 1).toFixed(2);
 
-      fetch('YOUR_GOOGLE_SCRIPT_URL', {
+      fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({demographics: demo, dsco: fakeDSCO, trials: data})
