@@ -52,18 +52,19 @@ timeline.push({
   type: 'survey-html-form',
   preamble: '<h3>Please fill in your demographic details:</h3>',
   html: `
-    <p>Age: <input name="age" type="number" required></p>
-    <p>Gender: 
-      <select name="gender" required>
-        <option value="" disabled selected>Select</option>
-        <option>Male</option>
-        <option>Female</option>
-        <option>Other</option>
-      </select>
-    </p>
+    <p>Gender: <select name="gender" required>
+<option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+</select></p>
+<p>Age: <select name="age" required>
+<option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option>
+</select></p>
+<p>Occupation: <select name="occupation" required>
+<option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
+</select></p>
+<p>Education: <select name="education" required>
+<option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option>
+</select></p>
     <p>Ethnicity: <input name="ethnicity" type="text" required></p>
-    <p>Occupation: <input name="occupation" type="text" required></p>
-    <p>Education Level: <input name="education" type="text" required></p>
   `
 });
 
