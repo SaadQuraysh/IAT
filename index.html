@@ -91,7 +91,6 @@ function createBlock(words1, words2, label1, label2, blockId) {
       on_load: () => {
         const buttons = document.querySelectorAll('.jspsych-btn');
         buttons.forEach(btn => {
-          btn.addEventListener('click', function(e))
           btn.addEventListener('touchstart', function(e) {
             e.preventDefault();
             const userResponse = btn.getAttribute('data-response');
