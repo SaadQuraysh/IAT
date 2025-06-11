@@ -146,9 +146,17 @@ timeline.push({
     fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ demographics: demo, dscore, trials: allData })
+      body: JSON.stringify({     demographics: demo,
+    d_score: dscore,  // Fixed key name
+    raw_data: allData // Fixed key name
+        })
     });
   }
+});
+  timeline.push({
+  type: 'html-button-response',
+  stimulus: '<p>Thank you! Your responses have been submitted successfully.</p>',
+  choices: ['Finish']
 });
 
 jsPsych.init({ timeline });
