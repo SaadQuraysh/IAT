@@ -142,8 +142,8 @@ timeline.push({
       return Math.sqrt(arr.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (arr.length - 1));
     };
     const pooled = [...comp, ...incomp];
-    const dscore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
-
+    finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
+    
     fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -157,8 +157,10 @@ timeline.push({
 
 timeline.push({
   type: 'html-button-response',
-  stimulus: `<p>Thank you! Your responses have been submitted successfully.</p>
-             <p>Your IAT D-score is: <strong>${dscore}</strong></p>`,
+  stimulus: function() {
+    return `<p>Thank you! Your responses have been submitted successfully.</p>
+            <p>Your IAT D-score is: <strong>${finalDScore}</strong></p>`;
+  },
   choices: ['Finish']
 });
 
