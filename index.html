@@ -154,11 +154,14 @@ timeline.push({
     });
   }
 });
-  timeline.push({
+
+timeline.push({
   type: 'html-button-response',
-  stimulus: '<p>Thank you! Your responses have been submitted successfully.</p>',
+  stimulus: `<p>Thank you! Your responses have been submitted successfully.</p>
+             <p>Your IAT D-score is: <strong>${dscore}</strong></p>`,
   choices: ['Finish']
 });
+
 
 jsPsych.init({ timeline });
 </script>
