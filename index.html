@@ -8,6 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-instructions.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-call-function.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-call-function.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
   <style>
     body { font-size: 20px; touch-action: manipulation; }
@@ -114,10 +116,12 @@ function createBlock(words1, words2, label1, label2, blockId) {
  [[...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive']
 ].forEach(([w1, w2, l1, l2], i) => timeline.push(...createBlock(w1, w2, l1, l2, i + 1)));
 
-// Submission and D-Score
-timeline.push({
+
+
+// Create the data submission block
+const submitDataBlock = {
   type: 'call-function',
-  func: function() {
+  func: function () {
     const demo = jsPsych.data.get().filter({ trial_type: 'survey-html-form' }).values()[0].response;
     const rt = block => jsPsych.data.get().filter({ block }).filter({ correct: true }).select('rt').values;
     const comp = [...rt(3), ...rt(4)], incomp = [...rt(6), ...rt(7)];
@@ -127,25 +131,41 @@ timeline.push({
       return Math.sqrt(arr.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (arr.length - 1));
     };
     const pooled = [...comp, ...incomp];
-    finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
+    const finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
+
+    // Save to jsPsych's internal storage (so you can use it later in stimulus)
+    jsPsych.data.addProperties({ dScore: finalDScore });
+
+    // Send to backend
+    const payload = {
+      timestamp: new Date().toISOString(),
+      gender: demo.gender,
+      age: demo.age,
+      occupation: demo.occupation,
+      education: demo.education,
+      ethnicity: demo.ethnicity,
+      dScore: finalDScore
+    };
 
     fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
       method: 'POST',
       mode: 'no-cors',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        timestamp: new Date().toISOString(),
-        ...demo,
-        dScore: finalDScore
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
   }
-});
+};
+timeline.push(submitDataBlock);
 
+  
 // Final message
 timeline.push({
   type: 'html-button-response',
-  stimulus: () => `<p>Thank you! Your responses have been submitted successfully.</p><p>Your IAT D-score is: <strong>${finalDScore}</strong></p>`,
+  stimulus: function () {
+    const score = jsPsych.data.get().last(1).values()[0]?.dScore || 'N/A';
+    return `<p>Thank you! Your responses have been submitted successfully.</p>
+            <p>Your IAT D-score is: <strong>${score}</strong></p>`;
+  },
   choices: ['Finish']
 });
 
