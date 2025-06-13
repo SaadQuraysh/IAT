@@ -144,7 +144,7 @@ timeline.push({
     const pooled = [...comp, ...incomp];
     finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
     
-    fetch('https://script.google.com/macros/s/AKfycbzjnA81tgjk3feNwADnMpI_ePzquEY9WjuDvlAHNs-okWLcFR4RAp2actklk3zj4vVX3A/exec', {
+    fetch('https://docs.google.com/spreadsheets/d/1cO2NkFS5XLoEUKosG5XhkfxOtfIMcbnwpoVoST8V49w/edit?usp=sharing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({     demographics: demo,
