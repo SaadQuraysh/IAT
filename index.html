@@ -149,7 +149,7 @@ const submitDataBlock = {
 
     fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
