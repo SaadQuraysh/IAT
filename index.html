@@ -144,18 +144,36 @@ timeline.push({
     const pooled = [...comp, ...incomp];
     finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
    
-fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({     
-        demographics: demo,
-        d_score: finalDScore,  // Fixed key name
-        raw_data: allData // Fixed key name
-        })
-    });
-  }
-});
-
+ const send_data = {
+    type: 'call-function',
+    func: function() {
+      const iatData = jsPsych.data.get().filter({trial_type: 'categorize-html'}).values();
+      const correctRTs = iatData.filter(d => d.correct === true).map(d => d.rt);
+      const dScore = (correctRTs.length > 0) ? (correctRTs.reduce((a, b) => a + b) / correctRTs.length) : 0;
+      const payload = {
+        timestamp: new Date().toISOString(),
+        gender: participantData.gender,
+        age: participantData.age,
+        occupation: participantData.occupation,
+        education: participantData.education,
+        ethnicity: participantData.ethnicity,
+        dScore: dScore
+      };
+      fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+    }
+  };
+jsPsych.run([
+    welcome,
+    demographics,
+    ...iat_blocks,
+    send_data,
+    thank_you
+  ]);
 
 timeline.push({
   type: 'html-button-response',
