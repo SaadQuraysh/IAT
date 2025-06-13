@@ -143,19 +143,24 @@ timeline.push({
     };
     const pooled = [...comp, ...incomp];
     finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
-    
-    fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({     
-        demographics: demo,
-        d_score: finalDScore,  // Fixed key name
-        raw_data: allData // Fixed key name
-        })
-    });
-  }
-});
+   
 let finalDScore = 0;
+  fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    demographics: demo,
+    d_score: finalDScore,
+    raw_data: allData
+  })
+})
+.then(res => res.text())
+.then(result => {
+  console.log("✅ Success:", result);
+})
+.catch(err => {
+  console.error("❌ Fetch error:", err);
+});
 
 timeline.push({
   type: 'html-button-response',
