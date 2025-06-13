@@ -20,6 +20,7 @@
 <script>
 const timeline = [];
 let finalDScore = 0;
+
 const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
 const unfamiliar = ['Zebronics', 'Action Shoes', 'Xolo', 'Lava', 'Fogg'];
 const positive = ['Trustworthy', 'Reliable', 'Quality', 'Innovative', 'Premium'];
@@ -53,30 +54,32 @@ timeline.push({
   preamble: '<h3>Please fill in your demographic details:</h3>',
   html: `
     <p>Gender: <select name="gender" required>
-<option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
-</select></p>
-<p>Age: <select name="age" required>
-<option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option>
-</select></p>
-<p>Occupation: <select name="occupation" required>
-<option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
-</select></p>
-<p>Education: <select name="education" required>
-<option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option>
-</select></p>
+      <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+    </select></p>
+    <p>Age: <select name="age" required>
+      <option value="">Select</option><option>20–24</option><option>25–29</option><option>30–34</option><option>35–39</option><option>40+</option>
+    </select></p>
+    <p>Occupation: <select name="occupation" required>
+      <option value="">Select</option><option>Student</option><option>Engineer</option><option>Teacher</option><option>Healthcare Professional</option><option>Business Professional</option><option>Other</option>
+    </select></p>
+    <p>Education: <select name="education" required>
+      <option value="">Select</option><option>High School</option><option>Bachelor's</option><option>Master's</option><option>Doctorate</option><option>Other</option>
+    </select></p>
     <p>Ethnicity: <input name="ethnicity" type="text" required></p>
   `
 });
 
-function createBlock(words1, words2, label1, label2, blockId) {
-  const trials = [];
-  const allWords = jsPsych.randomization.shuffle([
-    ...words1.map(w => ({ word: w, correct: 'left' })),
-    ...words2.map(w => ({ word: w, correct: 'right' }))
-  ]);
+// Instruction screen
+timeline.push({
+  type: 'instructions',
+  pages: ['Now begins Block 1 of 7. Tap "Next" to start.'],
+  show_clickable_nav: true
+});
 
-  allWords.forEach(item => {
-    trials.push({
+// Helper function to create blocks
+function createBlock(words1, words2, label1, label2, blockId) {
+  return jsPsych.randomization.shuffle([...words1.map(w => ({word: w, correct: 'left'})), ...words2.map(w => ({word: w, correct: 'right'}))])
+    .map(item => ({
       type: 'html-button-response',
       stimulus: `
         <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
@@ -88,52 +91,35 @@ function createBlock(words1, words2, label1, label2, blockId) {
       `,
       choices: [],
       data: { correct_response: item.correct, stimulus: item.word, block: blockId, label: `${label1} vs ${label2}` },
-      on_load: () => {
-        const buttons = document.querySelectorAll('.jspsych-btn');
-        buttons.forEach(btn => {
-          btn.addEventListener('touchstart', function(e) {
+      on_load: function() {
+        document.querySelectorAll('[data-response]').forEach(btn => {
+          btn.addEventListener('click', function(e) {
             e.preventDefault();
             const userResponse = btn.getAttribute('data-response');
             const correct = userResponse === item.correct;
             document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
-            setTimeout(() => jsPsych.finishTrial({
-              rt: performance.now(),
-              response: userResponse,
-              correct,
-              stimulus: item.word,
-              block: blockId
-            }), correct ? 0 : 600);
-          });
+            setTimeout(() => jsPsych.finishTrial({ rt: performance.now(), response: userResponse, correct, stimulus: item.word, block: blockId }), correct ? 0 : 600);
+          }, { once: true });
         });
       }
-    });
-  });
-
-  return trials;
+    }));
 }
 
-// Define all 7 blocks
-const blocks = [
-  createBlock(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 1),
-  createBlock(familiar, unfamiliar, 'Familiar', 'Unfamiliar', 2),
-  createBlock([...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative', 3),
-  createBlock([...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative', 4),
-  createBlock(familiar, unfamiliar, 'Unfamiliar', 'Familiar', 5), // reversed
-  createBlock([...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive', 6),
-  createBlock([...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive', 7)
-];
+// Push blocks
+[[familiar, unfamiliar, 'Familiar', 'Unfamiliar'],
+ [familiar, unfamiliar, 'Familiar', 'Unfamiliar'],
+ [[...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative'],
+ [[...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative'],
+ [unfamiliar, familiar, 'Unfamiliar', 'Familiar'],
+ [[...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive'],
+ [[...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive']
+].forEach(([w1, w2, l1, l2], i) => timeline.push(...createBlock(w1, w2, l1, l2, i + 1)));
 
-blocks.forEach(b => timeline.push(...b));
-
-// Final screen + D-score and submission
+// Submission and D-Score
 timeline.push({
-  type: 'html-button-response',
-  stimulus: '<p>Submitting your data...</p>',
-  choices: [],
-  trial_duration: 1000,
-  on_finish: function() {
-    const allData = jsPsych.data.get().values();
-    const demo = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).values()[0].response;
+  type: 'call-function',
+  func: function() {
+    const demo = jsPsych.data.get().filter({ trial_type: 'survey-html-form' }).values()[0].response;
     const rt = block => jsPsych.data.get().filter({ block }).filter({ correct: true }).select('rt').values;
     const comp = [...rt(3), ...rt(4)], incomp = [...rt(6), ...rt(7)];
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -143,48 +129,28 @@ timeline.push({
     };
     const pooled = [...comp, ...incomp];
     finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
-   
- const send_data = {
-    type: 'call-function',
-    func: function() {
-      const iatData = jsPsych.data.get().filter({trial_type: 'categorize-html'}).values();
-      const correctRTs = iatData.filter(d => d.correct === true).map(d => d.rt);
-      const dScore = (correctRTs.length > 0) ? (correctRTs.reduce((a, b) => a + b) / correctRTs.length) : 0;
-      const payload = {
-        timestamp: new Date().toISOString(),
-        gender: participantData.gender,
-        age: participantData.age,
-        occupation: participantData.occupation,
-        education: participantData.education,
-        ethnicity: participantData.ethnicity,
-        dScore: dScore
-      };
-      fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-    }
-  };
-jsPsych.run([
-    welcome,
-    demographics,
-    ...iat_blocks,
-    send_data,
-    thank_you
-  ]);
 
+    fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        ...demo,
+        dScore: finalDScore
+      })
+    });
+  }
+});
+
+// Final message
 timeline.push({
   type: 'html-button-response',
-  stimulus: function() {
-    return `<p>Thank you! Your responses have been submitted successfully.</p>
-            <p>Your IAT D-score is: <strong>${finalDScore}</strong></p>`;
-  },
+  stimulus: () => `<p>Thank you! Your responses have been submitted successfully.</p><p>Your IAT D-score is: <strong>${finalDScore}</strong></p>`,
   choices: ['Finish']
 });
 
-
+// Launch experiment
 jsPsych.init({ timeline });
 </script>
 </html>
