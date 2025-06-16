@@ -106,7 +106,7 @@ const submitData = {
       surveyCompleted: "No"
     };
 
-    fetch("YOUR_GOOGLE_APPS_SCRIPT_URL", {
+    fetch("https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec", {
       method: "POST",
       body: JSON.stringify(payload)
     });
@@ -120,7 +120,7 @@ const redirect = {
   type: "html-keyboard-response",
   stimulus: `
     <p>Thank you! Please click below to complete the final step of the study.</p>
-    <a href="YOUR_SURVEY_LINK_HERE" target="_blank">Go to Survey</a>`,
+    <a href="https://forms.office.com/Pages/DesignPageV2.aspx?origin=NeoPortalPage&subpage=design&id=th_MkXUSz0qz6sIT7BYle1yINtJLXI9LqMyMTTl_5QBUQloyREkyRVBRNVFaUTc2Qlo4TUFQM0kwVy4u" target="_blank">Go to Survey</a>`,
   choices: jsPsych.NO_KEYS
 };
 
