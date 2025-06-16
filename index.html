@@ -1,32 +1,24 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>IAT – Brand Bias Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IAT – Brand Bias</title>
   <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-survey-html-form.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-instructions.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-call-function.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-call-function.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css" rel="stylesheet" />
-  <style>
-    body { font-size: 20px; touch-action: manipulation; }
-    .jspsych-btn { font-size: 18px; }
-    table { margin: 10px auto; border-collapse: collapse; }
-    td, th { border: 1px solid #ccc; padding: 8px 12px; }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-keyboard-response.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-categorize-html.js"></script>
 </head>
 <body></body>
+
 <script>
-const timeline = [];
+const familiarBrands = ["Nike", "Apple", "Amazon", "Coca-Cola"];
+const unfamiliarBrands = ["Micromax", "MeUndies", "Catch soda", "Oppo"];
+const positiveWords = ["Trusted", "Innovative", "High-quality", "Loved"];
+const negativeWords = ["Cheap", "Outdated", "Boring", "Distrustful"];
 
-const familiar = ['Nike', 'Coca-Cola', 'Apple', 'Adidas', 'Pepsi'];
-const unfamiliar = ['Zebronics', 'Action Shoes', 'Xolo', 'Lava', 'Fogg'];
-const positive = ['Trustworthy', 'Reliable', 'Quality', 'Innovative', 'Premium'];
-const negative = ['Cheap', 'Fake', 'Boring', 'Unreliable', 'Outdated'];
-
+const participantID = "PID_" + Math.floor(Math.random() * 9000 + 1000);
+  
 // Welcome screen
 timeline.push({
   type: 'html-button-response',
@@ -70,106 +62,75 @@ timeline.push({
   `
 });
 
-// Instruction screen
-timeline.push({
-  type: 'instructions',
-  pages: ['Now begins Block 1 of 7. Tap "Next" to start.'],
-  show_clickable_nav: true
-});
+};
 
-// Helper function to create blocks
-function createBlock(words1, words2, label1, label2, blockId) {
-  return jsPsych.randomization.shuffle([...words1.map(w => ({word: w, correct: 'left'})), ...words2.map(w => ({word: w, correct: 'right'}))])
-    .map(item => ({
-      type: 'html-button-response',
-      stimulus: `
-        <div style="font-size: 36px; margin-bottom: 20px;">${item.word}</div>
-        <div style="display: flex; justify-content: space-between;">
-          <button class="jspsych-btn" style="width: 45%;" data-response="left">${label1}</button>
-          <button class="jspsych-btn" style="width: 45%;" data-response="right">${label2}</button>
-        </div>
-        <div id="feedback" style="margin-top: 20px; font-weight: bold;"></div>
-      `,
-      choices: [],
-      data: { correct_response: item.correct, stimulus: item.word, block: blockId, label: `${label1} vs ${label2}` },
-      on_load: function() {
-        document.querySelectorAll('[data-response]').forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userResponse = btn.getAttribute('data-response');
-            const correct = userResponse === item.correct;
-            document.getElementById('feedback').textContent = correct ? '' : 'X = Incorrect, try again';
-            setTimeout(() => jsPsych.finishTrial({ rt: performance.now(), response: userResponse, correct, stimulus: item.word, block: blockId }), correct ? 0 : 600);
-          }, { once: true });
-        });
-      }
-    }));
-}
+// Block 1: Attribute Categorization (Positive vs Negative)
+const block1 = {
+  timeline: [{
+    type: "categorize-html",
+    stimulus: jsPsych.timelineVariable("stimulus"),
+    key_answer: jsPsych.timelineVariable("correct_response"),
+    choices: ["e", "i"],
+    prompt: "<p>'E' = Positive, 'I' = Negative</p>",
+    data: { block: 1 },
+    on_finish: function(data) {
+      data.correct = data.key_press === data.key_answer;
+    }
+  }],
+  timeline_variables: positiveWords.concat(negativeWords).map(word => ({
+    stimulus: `<p>${word}</p>`,
+    correct_response: positiveWords.includes(word) ? 69 : 73 // 69 = e, 73 = i
+  })),
+  randomize_order: true
+};
 
-// Push blocks
-[[familiar, unfamiliar, 'Familiar', 'Unfamiliar'],
- [familiar, unfamiliar, 'Familiar', 'Unfamiliar'],
- [[...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative'],
- [[...familiar, ...positive], [...unfamiliar, ...negative], 'Familiar + Positive', 'Unfamiliar + Negative'],
- [unfamiliar, familiar, 'Unfamiliar', 'Familiar'],
- [[...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive'],
- [[...familiar, ...negative], [...unfamiliar, ...positive], 'Familiar + Negative', 'Unfamiliar + Positive']
-].forEach(([w1, w2, l1, l2], i) => timeline.push(...createBlock(w1, w2, l1, l2, i + 1)));
+// Other blocks (brand categorization, combined blocks, reversed, etc.) would be added here...
 
-
-
-// Create the data submission block
-const submitDataBlock = {
-  type: 'call-function',
-  func: function () {
-    const demo = jsPsych.data.get().filter({ trial_type: 'survey-html-form' }).values()[0].response;
-    const rt = block => jsPsych.data.get().filter({ block }).filter({ correct: true }).select('rt').values;
-    const comp = [...rt(3), ...rt(4)], incomp = [...rt(6), ...rt(7)];
-    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const sd = arr => {
-      const m = mean(arr);
-      return Math.sqrt(arr.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (arr.length - 1));
-    };
-    const pooled = [...comp, ...incomp];
-    const finalDScore = ((mean(incomp) - mean(comp)) / sd(pooled)).toFixed(4);
-
-    // Save to jsPsych's internal storage (so you can use it later in stimulus)
-    jsPsych.data.addProperties({ dScore: finalDScore });
-
-    // Send to backend
+// Final screen & data submission
+const submitData = {
+  type: "html-keyboard-response",
+  stimulus: "<p>Submitting your data...</p>",
+  on_start: function() {
+    const trials = jsPsych.data.get().filter({ block: 1 }); // Just using block 1 for now
+    const avgRT = Math.round(trials.select('rt').mean());
+    const correct = trials.select('correct').mean();
+    const dscore = ((correct - 0.5) * 2).toFixed(3); // Simulated D-score for demo
     const payload = {
-      timestamp: new Date().toISOString(),
-      gender: demo.gender,
-      age: demo.age,
-      occupation: demo.occupation,
-      education: demo.education,
-      ethnicity: demo.ethnicity,
-      dScore: finalDScore
+      participantID: participantID,
+      gender: "", // Add if collected in previous screens
+      age: "",    // Optional
+      region: "", // Optional
+      dscore: dscore,
+      ctr: 0.085, // Simulated click-through rate
+      sentiment: "Positive", // Simulated for demo
+      surveyCompleted: "No"
     };
 
-    fetch('https://script.google.com/macros/s/AKfycbxQB-67VLlG2TUSmaaZx0cFGeMbgU4GZWrBO5J3zk4Pa6cbjRTkf6oGl7bFPkKksUXE/exec', {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
+    fetch("YOUR_GOOGLE_APPS_SCRIPT_URL", {
+      method: "POST",
       body: JSON.stringify(payload)
     });
-  }
-};
-timeline.push(submitDataBlock);
-
-  
-// Final message
-timeline.push({
-  type: 'html-button-response',
-  stimulus: function () {
-    const score = jsPsych.data.get().last(1).values()[0]?.dScore || 'N/A';
-    return `<p>Thank you! Your responses have been submitted successfully.</p>
-            <p>Your IAT D-score is: <strong>${score}</strong></p>`;
   },
-  choices: ['Finish']
-});
+  choices: jsPsych.NO_KEYS,
+  trial_duration: 2000
+};
 
-// Launch experiment
-jsPsych.init({ timeline });
+// Redirect to Survey
+const redirect = {
+  type: "html-keyboard-response",
+  stimulus: `
+    <p>Thank you! Please click below to complete the final step of the study.</p>
+    <a href="YOUR_SURVEY_LINK_HERE" target="_blank">Go to Survey</a>`,
+  choices: jsPsych.NO_KEYS
+};
+
+// Timeline
+jsPsych.init({
+  timeline: [welcome, block1, submitData, redirect],
+  on_finish: function() {
+    jsPsych.data.displayData();
+  }
+});
 </script>
 </html>
+
